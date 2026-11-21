@@ -548,22 +548,37 @@ function calEvents() {
   (appState.notices || []).forEach(n => { const type = noticeType[n.category]; if (type && n.relevant_date) add(String(n.relevant_date).slice(0, 10), type, n.title, ""); });
   return map;
 }
-/* ---------- This Week: 7-day activity weight graph, filled from the Unlucky Calendar ---------- */
+/* ---------- This Month: weekly activity weight graph, filled from the Unlucky Calendar ---------- */
 const WEEK_WEIGHT = { "Exam": 5, "CT": 3, "CT / Quiz": 3, "Assignment": 2, "Countdown": 2 };
 let weekSel = "", weekToday = "";
-function weekDays() {
-  const [y, m, d] = dhakaToday().split("-").map(Number), base = Date.UTC(y, m - 1, d), back = (new Date(base).getUTCDay() + 1) % 7; // week runs Saturday to Friday
-  return Array.from({ length: 7 }, (_, i) => { const t = new Date(base + (i - back) * 86400000); return { key: t.getUTCFullYear() + "-" + pad2(t.getUTCMonth() + 1) + "-" + pad2(t.getUTCDate()), date: t }; });
+const dayKey = (t) => t.getUTCFullYear() + "-" + pad2(t.getUTCMonth() + 1) + "-" + pad2(t.getUTCDate());
+function monthWeeks() {
+  const [y, m] = dhakaToday().split("-").map(Number), DAY = 86400000;
+  const first = Date.UTC(y, m - 1, 1), last = Date.UTC(y, m, 0);
+  let start = first - ((new Date(first).getUTCDay() + 1) % 7) * DAY; // weeks run Saturday to Friday
+  const weeks = [];
+  for (; start <= last; start += 7 * DAY) {
+    const from = Math.max(start, first), to = Math.min(start + 6 * DAY, last), days = [];
+    for (let t = from; t <= to; t += DAY) days.push(dayKey(new Date(t)));
+    weeks.push({ key: dayKey(new Date(start)), from: new Date(from), to: new Date(to), days });
+  }
+  return weeks;
 }
 function renderWeek(animate = true) {
   const wrap = $("#weekChart"); if (!wrap) return;
-  const today = dhakaToday(), days = weekDays(), events = calEvents();
-  weekToday = today; if (!days.some(x => x.key === weekSel)) weekSel = today;
+  const today = dhakaToday(), weeks = monthWeeks(), events = calEvents();
+  weekToday = today;
+  const cur = weeks.find(w => w.days.includes(today));
+  if (!weeks.some(w => w.key === weekSel)) weekSel = (cur || weeks[0]).key;
   const fmt = (t, o) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...o }).format(t);
-  const data = days.map(x => { const list = events[x.key] || []; return { ...x, list, pts: list.reduce((s, e) => s + (WEEK_WEIGHT[e.type] || 1), 0) }; });
-  const total = data.reduce((s, x) => s + x.pts, 0), max = Math.max(7, ...data.map(x => x.pts)), avgPct = Math.min(100, (total / 7) / max * 92);
+  const rng = (w) => (w.from.getTime() === w.to.getTime() ? fmt(w.from, { day: "numeric" }) : fmt(w.from, { day: "numeric" }) + "–" + fmt(w.to, { day: "numeric" }));
+  const data = weeks.map(w => {
+    const list = []; w.days.forEach(k => (events[k] || []).forEach(e => list.push({ ...e, key: k })));
+    return { ...w, list, pts: list.reduce((s, e) => s + (WEEK_WEIGHT[e.type] || 1), 0) };
+  });
+  const total = data.reduce((s, x) => s + x.pts, 0), max = Math.max(10, ...data.map(x => x.pts)), avgPct = Math.min(100, (total / data.length) / max * 92);
   const count = (...types) => data.reduce((s, x) => s + x.list.filter(e => types.includes(e.type)).length, 0);
-  $("#weekRange").textContent = fmt(days[0].date, { day: "numeric", month: "short" }) + " – " + fmt(days[6].date, { day: "numeric", month: "short" });
+  $("#weekRange").textContent = fmt(data[0].from, { month: "long", year: "numeric" });
 
   const chips = $("#weekChips"); chips.innerHTML = "";
   [["Activities", data.reduce((s, x) => s + x.list.length, 0)], ["Exams", count("Exam")], ["CT / Quiz", count("CT", "CT / Quiz")], ["Assignments", count("Assignment")]].forEach(([label, n]) => {
@@ -571,26 +586,30 @@ function renderWeek(animate = true) {
   });
 
   wrap.innerHTML = ""; wrap.style.setProperty("--avg", avgPct.toFixed(1));
-  const grid = el("div", "wk-grid"), bars = [];
-  data.forEach(x => {
+  const grid = el("div", "wk-grid"), bars = []; grid.style.gridTemplateColumns = "repeat(" + data.length + ",minmax(0,1fr))";
+  data.forEach((x, i) => {
     const on = x.key === weekSel, p = x.pts ? x.pts / max * 92 : 0;
-    const col = el("button", "wk-col" + (on ? " is-sel" : "") + (x.key === today ? " is-today" : "")); col.type = "button"; col.setAttribute("aria-pressed", on ? "true" : "false");
-    col.setAttribute("aria-label", fmt(x.date, { weekday: "long", day: "numeric", month: "short" }) + ": " + x.list.length + (x.list.length === 1 ? " activity" : " activities") + ", weight " + x.pts);
+    const col = el("button", "wk-col" + (on ? " is-sel" : "") + (cur && x.key === cur.key ? " is-today" : "")); col.type = "button"; col.setAttribute("aria-pressed", on ? "true" : "false");
+    col.setAttribute("aria-label", "Week " + (i + 1) + ", " + rng(x) + " " + fmt(x.to, { month: "short" }) + ": " + x.list.length + (x.list.length === 1 ? " activity" : " activities") + ", weight " + x.pts);
     const track = el("span", "wk-track"), bar = el("span", "wk-bar" + (x.pts ? "" : " empty"));
     bar.style.setProperty("--p", animate ? 0 : p); bars.push([bar, p]); track.append(bar);
     if (on) track.append(el("span", "wk-dot"));
-    const day = el("span", "wk-day"); day.append(el("b", "", fmt(x.date, { weekday: "short" })), el("small", "", fmt(x.date, { day: "numeric" })));
+    const day = el("span", "wk-day"); day.append(el("b", "", "Week " + (i + 1)), el("small", "", rng(x)));
     col.append(track, day); col.addEventListener("click", () => { weekSel = x.key; renderWeek(false); }); grid.append(col);
   });
-  const avgLabel = el("span", "wk-avg-label" + (data.findIndex(x => x.key === weekSel) <= 2 ? " right" : ""), "7-day avg.");
+  const selIdx = Math.max(0, data.findIndex(x => x.key === weekSel));
+  const avgLabel = el("span", "wk-avg-label" + (selIdx < data.length / 2 ? " right" : ""), "Weekly avg.");
   wrap.append(grid, el("div", "wk-avg"), avgLabel);
   if (animate) requestAnimationFrame(() => requestAnimationFrame(() => bars.forEach(([b, p]) => b.style.setProperty("--p", p))));
 
-  const sel = data.find(x => x.key === weekSel) || data[0];
-  $("#weekTitle").textContent = (sel.key === today ? "Today · " : "") + fmt(sel.date, { weekday: "long", day: "numeric", month: "long" });
-  $("#weekSub").textContent = sel.list.length ? sel.list.length + (sel.list.length === 1 ? " activity" : " activities") + " · weight " + sel.pts : "Nothing scheduled. A free day.";
+  const sel = data[selIdx];
+  $("#weekTitle").textContent = (cur && sel.key === cur.key ? "This week" : "Week " + (selIdx + 1)) + " · " + rng(sel) + " " + fmt(sel.to, { month: "short" });
+  $("#weekSub").textContent = sel.list.length ? sel.list.length + (sel.list.length === 1 ? " activity" : " activities") + " · weight " + sel.pts : "Nothing scheduled. A free week.";
   const ul = $("#weekList"); ul.innerHTML = "";
-  sel.list.forEach(e => { const li = el("li", "wk-item"); li.append(el("span", "wk-tag", e.type), el("span", "wk-name", e.title)); ul.append(li); });
+  sel.list.slice(0, 10).forEach(e => {
+    const li = el("li", "wk-item"); li.append(el("span", "wk-tag", e.type), el("span", "wk-name", fmt(new Date(e.key + "T00:00:00Z"), { weekday: "short", day: "numeric" }) + " · " + e.title)); ul.append(li);
+  });
+  if (sel.list.length > 10) ul.append(el("li", "wk-item", "+" + (sel.list.length - 10) + " more"));
 }
 setInterval(() => { if (weekToday && dhakaToday() !== weekToday) renderWeek(); }, 60000);
 function openCalendar() { const t = dhakaToday().split("-"); calYear = +t[0]; calMonth = +t[1] - 1; calSelected = ""; renderCalendar(); }
