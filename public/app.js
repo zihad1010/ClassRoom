@@ -623,15 +623,17 @@ async function weekImageBlob() {
   renderWeek(false);                                   // fresh data, bars already at their final height
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
   await nextFrames(2);
-  const node = $(".week-panel"), ratio = 3, pad = 18;
+  const node = $(".week-panel"), ratio = 3;
   if (weekFontCSS === null) { try { weekFontCSS = await htmlToImage.getFontEmbedCSS(node); } catch { weekFontCSS = ""; } }
   const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#f4f2ec";
   const opts = { pixelRatio: ratio, fontEmbedCSS: weekFontCSS, cacheBust: false };
   if (isSafariLike()) { try { await htmlToImage.toCanvas(node, opts); } catch {} }   // Safari needs a warm-up pass for fonts/images
   const shot = await htmlToImage.toCanvas(node, opts);
-  const out = document.createElement("canvas"), p = pad * ratio;
-  out.width = shot.width + p * 2; out.height = shot.height + p * 2;
-  const ctx = out.getContext("2d"); ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(shot, p, p);
+  // Story format: 1080 x 1920 (9:16), dashboard centred on the app background colour
+  const W = 1080, H = 1920, margin = 60, dw = W - margin * 2, dh = Math.round(shot.height * dw / shot.width);
+  const out = document.createElement("canvas"); out.width = W; out.height = H;
+  const ctx = out.getContext("2d"); ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.imageSmoothingQuality = "high"; ctx.drawImage(shot, margin, Math.round((H - dh) / 2), dw, dh);
   const blob = await new Promise(res => out.toBlob(res, "image/png"));
   if (!blob) throw new Error("Could not encode the image");
   return blob;
@@ -640,22 +642,30 @@ function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob), a = document.createElement("a");
   a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-async function shareWeek() {
+const SHARE_NAMES = { instagram: "Instagram", facebook: "Facebook" };
+async function shareWeek(target) {
   if (weekSharing) return; weekSharing = true;
-  const btn = $("#weekShareBtn"); btn.disabled = true; btn.classList.add("busy"); btn.setAttribute("aria-busy", "true"); showToast("Preparing image…");
+  const opts = $$(".share-opt"), note = $("#shareNote"), btn = $("#weekShareBtn");
+  opts.forEach(b => b.disabled = true); btn.classList.add("busy"); note.textContent = "Preparing your image…";
+  const label = SHARE_NAMES[target] || "your app";
   try {
-    const blob = await weekImageBlob(), name = "batch96-" + dhakaToday() + ".png", file = new File([blob], name, { type: "image/png" });
+    const blob = await weekImageBlob(), name = "batch96-story-" + dhakaToday() + ".png", file = new File([blob], name, { type: "image/png" });
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: "Batch96", text: "Batch96 · this month's class activity" }); showToast("Shared."); }
+      try { await navigator.share({ files: [file], title: "Batch96" }); closeModal("shareModal"); }
       catch (e) {
-        if (e && e.name === "AbortError") return;      // user closed the share sheet
-        downloadBlob(blob, name); showToast("Couldn't open the share menu, so the image was downloaded.");
+        if (e && e.name === "AbortError") { note.textContent = ""; return; }     // user closed the share sheet
+        downloadBlob(blob, name); note.textContent = "Couldn't open the share menu, so the image was saved. Open " + label + " and add it to your story.";
       }
-    } else { downloadBlob(blob, name); showToast("Sharing isn't supported on this device, so the image was downloaded."); }
-  } catch (e) { console.error(e); showToast("Couldn't create the image. Please try again."); }
-  finally { weekSharing = false; btn.disabled = false; btn.classList.remove("busy"); btn.removeAttribute("aria-busy"); }
+    } else {
+      downloadBlob(blob, name);
+      note.textContent = "Sharing isn't supported on this device, so the image was saved. Open " + label + " and add it to your story.";
+      if (target === "instagram" && /Android|iPhone|iPad/i.test(navigator.userAgent)) setTimeout(() => { location.href = "instagram://story-camera"; }, 900);
+    }
+  } catch (e) { console.error(e); note.textContent = "Couldn't create the image. Please try again."; }
+  finally { weekSharing = false; opts.forEach(b => b.disabled = false); btn.classList.remove("busy"); }
 }
-$("#weekShareBtn").addEventListener("click", shareWeek);
+$("#weekShareBtn").addEventListener("click", () => { $("#shareNote").textContent = ""; showModal("shareModal"); });
+$$(".share-opt").forEach(b => b.addEventListener("click", () => shareWeek(b.dataset.share)));
 setInterval(() => { if (weekToday && dhakaToday() !== weekToday) renderWeek(); }, 60000);
 function openCalendar() { const t = dhakaToday().split("-"); calYear = +t[0]; calMonth = +t[1] - 1; calSelected = ""; renderCalendar(); }
 function shiftCalMonth(delta) { const d = new Date(Date.UTC(calYear, calMonth + delta, 1)); calYear = d.getUTCFullYear(); calMonth = d.getUTCMonth(); calSelected = ""; renderCalendar(); }
