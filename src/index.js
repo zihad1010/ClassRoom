@@ -1,4 +1,4 @@
-// BUP ICE Class Update Portal - Cloudflare Worker backend
+// Class Update Portal (Batch 96) - Cloudflare Worker backend
 // Bindings needed: DB (D1), ASSETS (static files), secret ADMIN_PASSWORD
 // Optional secret: SESSION_SECRET (if not set, ADMIN_PASSWORD is used to sign sessions)
 // Push notifications: secrets VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (e.g. mailto:you@example.com)
@@ -8,7 +8,6 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 const CATEGORIES = ["Class", "Assignment", "Quiz / CT", "Exam", "Other"];
 const SESSION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const enc = new TextEncoder();
-const REACTION_KINDS = ["love", "halo", "upside"]; // love, saint smile, upside-down saint smile
 const PREMIUM_SECONDS = 30 * 24 * 60 * 60;
 
 // Tables are created automatically on first request, so no manual SQL step is needed.
@@ -16,7 +15,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS countdowns (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, target TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS polls (id INTEGER PRIMARY KEY AUTOINCREMENT, question TEXT NOT NULL, options TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS poll_votes (poll_id INTEGER NOT NULL, voter_id TEXT NOT NULL, option_idx INTEGER NOT NULL, voter_name TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (poll_id, voter_id))`,
-  `CREATE TABLE IF NOT EXISTS reactions (notice_id INTEGER NOT NULL, voter_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (notice_id, voter_id))`,
+  `CREATE TABLE IF NOT EXISTS notice_views (notice_id INTEGER NOT NULL, voter_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (notice_id, voter_id))`,
   `CREATE TABLE IF NOT EXISTS devices (voter_id TEXT PRIMARY KEY, first_seen TEXT NOT NULL DEFAULT (datetime('now')), last_seen TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS class_routine (id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, course TEXT NOT NULL, start_time TEXT NOT NULL, end_time TEXT NOT NULL DEFAULT '', room TEXT NOT NULL DEFAULT '', faculty TEXT NOT NULL DEFAULT '')`,
   `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL DEFAULT 0)`,
@@ -224,7 +223,7 @@ async function handleApi(request, env, url, ctx) {
   const method = request.method;
 
   if (path === "/api/test" && method === "GET") {
-    return json({ success: true, message: "BUP ICE API is working!" });
+    return json({ success: true, message: "API is working!" });
   }
 
   if (!env.DB) return json({ error: "Database is not connected." }, 500);
@@ -254,7 +253,7 @@ async function handleApi(request, env, url, ctx) {
         ).bind(voter).run()
       );
     }
-    const [notices, settings, countdowns, polls, pollCounts, myVotes, reactCounts, myReacts, rev, routine] = await Promise.all([
+    const [notices, settings, countdowns, polls, pollCounts, myVotes, viewCounts, rev, routine] = await Promise.all([
       env.DB.prepare(
         `SELECT id, title, category, body, relevant_date, pinned, created_at
          FROM notices ORDER BY pinned DESC, created_at DESC, id DESC`
@@ -264,23 +263,20 @@ async function handleApi(request, env, url, ctx) {
       env.DB.prepare(`SELECT id, question, options, created_at FROM polls ORDER BY id DESC LIMIT 20`).all(),
       env.DB.prepare(`SELECT poll_id, option_idx, COUNT(*) AS n FROM poll_votes GROUP BY poll_id, option_idx`).all(),
       voter ? env.DB.prepare(`SELECT poll_id, option_idx FROM poll_votes WHERE voter_id = ?`).bind(voter).all() : Promise.resolve({ results: [] }),
-      env.DB.prepare(`SELECT notice_id, kind, COUNT(*) AS n FROM reactions GROUP BY notice_id, kind`).all(),
-      voter ? env.DB.prepare(`SELECT notice_id, kind FROM reactions WHERE voter_id = ?`).bind(voter).all() : Promise.resolve({ results: [] }),
+      env.DB.prepare(`SELECT notice_id, COUNT(*) AS n FROM notice_views GROUP BY notice_id`).all(),
       getRev(env),
       env.DB.prepare(`SELECT id, day, course, start_time, end_time, room, faculty FROM class_routine ORDER BY day ASC, start_time ASC, id ASC`).all(),
     ]);
 
-    const rc = {};
-    (reactCounts.results || []).forEach((r) => { (rc[r.notice_id] = rc[r.notice_id] || {})[r.kind] = r.n; });
-    const myR = {};
-    (myReacts.results || []).forEach((r) => { myR[r.notice_id] = r.kind; });
+    const vc = {};
+    (viewCounts.results || []).forEach((r) => { vc[r.notice_id] = r.n; });
     const pc = {};
     (pollCounts.results || []).forEach((r) => { pc[r.poll_id + ":" + r.option_idx] = r.n; });
     const myV = {};
     (myVotes.results || []).forEach((r) => { myV[r.poll_id] = r.option_idx; });
 
     return json({
-      notices: (notices.results || []).map((n) => ({ ...n, reactions: rc[n.id] || {}, mine: myR[n.id] || null })),
+      notices: (notices.results || []).map((n) => ({ ...n, views: vc[n.id] || 0 })),
       settings: settings || {},
       countdowns: countdowns.results || [],
       polls: (polls.results || []).map((p) => {
@@ -322,18 +318,15 @@ async function handleApi(request, env, url, ctx) {
     return json({ ok: true });
   }
 
-  // Reactions (love / saint smile / upside-down saint smile): one per device per notice
-  const reactMatch = path.match(/^\/api\/notices\/(\d+)\/react$/);
-  if (reactMatch && method === "POST") {
+  // Views: each device is counted once per notice
+  const viewMatch = path.match(/^\/api\/notices\/(\d+)\/view$/);
+  if (viewMatch && method === "POST") {
     if (!voter) return json({ error: "Device id missing. Please reload the app." }, 400);
-    const id = Number(reactMatch[1]);
-    const { kind } = await readBody(request);
-    if (kind !== null && !REACTION_KINDS.includes(kind)) return json({ error: "Invalid reaction." }, 400);
+    const id = Number(viewMatch[1]);
     if (!(await env.DB.prepare(`SELECT id FROM notices WHERE id = ?`).bind(id).first())) return json({ error: "Notice not found." }, 404);
-    if (kind === null) await env.DB.prepare(`DELETE FROM reactions WHERE notice_id = ? AND voter_id = ?`).bind(id, voter).run();
-    else await env.DB.prepare(`INSERT OR REPLACE INTO reactions (notice_id, voter_id, kind) VALUES (?, ?, ?)`).bind(id, voter, kind).run();
-    await bumpRev(env);
-    return json({ ok: true });
+    await env.DB.prepare(`INSERT OR IGNORE INTO notice_views (notice_id, voter_id) VALUES (?, ?)`).bind(id, voter).run();
+    const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM notice_views WHERE notice_id = ?`).bind(id).first();
+    return json({ ok: true, views: row?.n || 0 });
   }
 
   // Poll voting: one choice per device, tap the same option again to take the vote back
@@ -469,7 +462,7 @@ async function handleApi(request, env, url, ctx) {
     const id = Number(noticeMatch[1]);
     const result = await env.DB.prepare(`DELETE FROM notices WHERE id = ?`).bind(id).run();
     if (!result.meta?.changes) return json({ error: "Notice not found." }, 404);
-    await env.DB.prepare(`DELETE FROM reactions WHERE notice_id = ?`).bind(id).run();
+    await env.DB.prepare(`DELETE FROM notice_views WHERE notice_id = ?`).bind(id).run();
     await bumpRev(env);
     return json({ ok: true });
   }
