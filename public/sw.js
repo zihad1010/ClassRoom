@@ -1,5 +1,5 @@
-const CACHE = "bup-ice-v11";
-const SHELL = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/logo-white.png"];
+const CACHE = "bup-ice-v15";
+const SHELL = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/favicon-32.png", "/icons/logo-white.png", "/icons/splash-logo.png", "/vendor/html-to-image.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -41,7 +41,7 @@ self.addEventListener("fetch", (event) => {
 
 // ---------- Push notifications ----------
 self.addEventListener("push", (event) => {
-  let data = { title: "My CR", body: "New update from your CR", url: "/" };
+  let data = { title: "Batch96", body: "New update from your CR", url: "/" };
   try { data = { ...data, ...event.data.json() }; } catch (e) {}
   event.waitUntil((async () => {
     const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
