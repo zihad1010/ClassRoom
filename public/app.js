@@ -748,7 +748,7 @@ window.addEventListener("hashchange", routeHash);
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
   try { localStorage.setItem("bupTheme", t); } catch {}
-  $("meta[name=theme-color]").content = t === "dark" ? "#0c1511" : "#f4f2ec";
+  $("meta[name=theme-color]").content = t === "dark" ? "#0d0e11" : "#e9ebf2";
   $("#themeToggle use").setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
   $$("[data-theme-set]").forEach(b => b.classList.toggle("active", b.dataset.themeSet === t));
 }
@@ -874,6 +874,8 @@ routeHash();
 
 buildChips();
 initCtSlider();
+function setWelcome() { const w = $("#welcomeDate"); if (w) w.textContent = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Dhaka" }).format(new Date()); }
+setWelcome(); setInterval(setWelcome, 60000);
 setInterval(() => tickCountdown(), 1000);
 loadData(); firstVisitPrompt(); refreshPushBtn();
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
