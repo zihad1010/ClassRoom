@@ -748,3 +748,47 @@ body.on-home{background:var(--bg) linear-gradient(180deg,#f7f8fb 0,var(--bg) 380
 .cls-next{background:var(--tint2);color:var(--ink)}
 .cls-card.is-live{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink),var(--shadow-soft)}
 .cls-today{background:var(--card);border-color:transparent;box-shadow:var(--card-shadow)}
+
+
+/* ===== v15: navy-teal + beige theme (second reference). Light = cream, Dark = deep teal ===== */
+:root{--bg:#e6e1d8;--ink:#0d232b;--ink2:#3d5760;--muted:#7b8f94;--line:#d9d2c6;--card:#f4f0e8;--sunk:#ebe5da;--tint:#dde7e6;--tint2:#c8dadb;--black:#3f7280;--brand-hi:#2f5d6a;--acc:#1d4f5d;--nav:#0e222b;--cream:#d9d2c8;--teal:#4a7c8a;--teal-hi:#5b8f9d;--deep:#0e222b;
+  --cd-a:#4a7c8a;--cd-b:#3b6874;--gold:#7b8f94;--gold-line:rgba(13,35,43,.35);--shadow-soft:0 18px 30px -22px rgba(20,60,72,.45);--card-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 18px 30px -22px rgba(20,60,72,.45)}
+:root[data-theme=dark]{--bg:#0a1a21;--ink:#f1f5f6;--ink2:#c3d1d5;--muted:#86a0a8;--line:#1f4250;--card:#102a34;--sunk:#173845;--tint:#173845;--tint2:#21495a;--black:#4a7c8a;--brand-hi:#5b8f9d;--acc:#9fd0da;--nav:#0e222b;--deep:#0a1a21;
+  --cd-a:#4a7c8a;--cd-b:#3b6874;--gold:#86a0a8;--gold-line:rgba(255,255,255,.3);--shadow-soft:0 18px 30px -22px rgba(0,0,0,.85);--card-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 18px 30px -22px rgba(0,0,0,.9)}
+body.on-home{background:var(--bg) linear-gradient(180deg,#efe9de 0,var(--bg) 380px)}
+:root[data-theme=dark] body.on-home{background:var(--bg) linear-gradient(180deg,#123541 0,var(--bg) 380px)}
+
+/* countdown: muted teal card with line-art doodles, cream syllabus strip */
+.ct-slide .ct-card,.ct-card,:root[data-theme=dark] .ct-card{background:linear-gradient(150deg,#558a98 0%,#4a7c8a 55%,#3c6a77 100%);color:#fff;box-shadow:var(--card-shadow)}
+.ct-card:after{content:"";position:absolute;right:-4px;top:-2px;width:170px;height:96px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20170%2096%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%27140%27%20cy%3D%2730%27%20r%3D%2720%27%2F%3E%3Cpath%20d%3D%27M140%2030V18M140%2030l9%205%27%2F%3E%3Cpath%20d%3D%27M92%2058c9-5%2018-5%2027%200v26c-9-5-18-5-27%200z%27%2F%3E%3Cpath%20d%3D%27M119%2058c9-5%2018-5%2027%200v26c-9-5-18-5-27%200z%27%2F%3E%3Cpath%20d%3D%27M52%2046l22-25%206%206-22%2025-9%203z%27%2F%3E%3Cpath%20d%3D%27M70%2025l6%206%27%2F%3E%3Cpath%20d%3D%27M18%2022v10M13%2027h10M108%2012v6M105%2015h6M28%2070v8M24%2074h8%27%2F%3E%3Ccircle%20cx%3D%2796%27%20cy%3D%2734%27%20r%3D%271.5%27%2F%3E%3Ccircle%20cx%3D%2746%27%20cy%3D%2772%27%20r%3D%271.5%27%2F%3E%3C%2Fsvg%3E") no-repeat right top/contain;opacity:.3;pointer-events:none}
+.ct-card>*{position:relative;z-index:1}
+.ct-card .ct-title{color:#fff}
+.ct-card .pill{border-color:rgba(255,255,255,.32);background:rgba(10,26,33,.28);color:#fff}
+.ct-card .ct-date{color:rgba(255,255,255,.82)}
+.ct-card .countdown>div,.ct-card .countdown>.cd-days,.ct-card .countdown>.cd-hours,.ct-card .countdown>.cd-minutes,.ct-card .countdown>.cd-seconds{background:rgba(10,26,33,.3);border:1px solid rgba(255,255,255,.16)}
+.ct-card .countdown strong,.cd-seconds strong{color:#fff}
+.ct-card .countdown span{color:rgba(255,255,255,.74)}
+.ct-syl{background:var(--cream);color:#0d232b}
+.ct-syl-label{color:#2f5d6a}
+.ct-syl-text{color:#33484f}
+.ct-syl-more{background:var(--deep);color:#fff}
+.ct-syl-more:focus-visible{outline-color:#0d232b}
+:root[data-theme=dark] .ct-syl-more{background:#0a1a21}
+
+/* pinned notice: dark teal glass */
+.notice-card.is-pinned,:root[data-theme=dark] .notice-card.is-pinned{background:linear-gradient(150deg,rgba(20,52,64,.94),rgba(8,24,30,.92));border:1px solid rgba(255,255,255,.14)}
+.notice-card.is-pinned .notice-link,.notice-card.is-pinned .see-more,:root[data-theme=dark] .notice-card.is-pinned .notice-link,:root[data-theme=dark] .notice-card.is-pinned .see-more{color:#a9dbe4}
+
+/* bottom nav: same floating buttons, deep teal */
+.nav-btn{background:var(--deep);color:#8fb0b9;box-shadow:0 10px 26px rgba(8,28,36,.35)}
+:root[data-theme=dark] .nav-btn{background:#0e222b}
+.nav-btn.active,:root[data-theme=dark] .nav-btn.active{background:var(--teal);color:#fff}
+
+/* routine + badges */
+.cls-now{background:var(--deep);color:#fff}
+.cls-next{background:var(--cream);color:#0d232b}
+.cls-time{background:var(--teal)}
+.day-chip.active,.day-chip.active[data-day]{box-shadow:0 10px 18px -12px rgba(30,80,96,.8)}
+.button-primary:hover{background:var(--teal-hi)}
+.notice-card:not(.is-pinned) .category{color:var(--brand-hi)}
+:root[data-theme=dark] .notice-card:not(.is-pinned) .category{color:var(--acc)}
