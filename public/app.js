@@ -298,7 +298,7 @@ async function loadData(silent = false) {
     dataSig = sig;
     appState.notices = data.notices || []; appState.settings = data.settings || {}; appState.countdowns = data.countdowns || []; appState.routine = data.routine || [];
     appState.isAdmin = Boolean(data.isAdmin);
-    renderCountdown(); renderNotices(); consumePending(); pendingNotice = null; renderInfoPanels(); updateProfile(); updateNotifs();
+    renderCountdown(); renderNotices(); consumePending(); pendingNotice = null; renderInfoPanels(); updateProfile(); updateNotifs(); renderWelcome();
     if (appState.isAdmin) {
       renderAdminNotices(); fillCtForm(); loadStats();
       // only refill the forms when the CR's own data changed, so students' activity never wipes what the CR is typing
@@ -339,6 +339,22 @@ function renderAdminCountdowns() {
   ])));
 }
 function fillCtForm() { renderAdminCountdowns(); }
+/* ---------- Home welcome title: set by the CR (stored in the existing settings "syllabus_title" field) ---------- */
+const WELCOME_DEFAULT = "Batch 96 Class Portal";
+function renderWelcome() {
+  const custom = safeText((appState.settings || {}).syllabus_title).trim();
+  const h = $("#welcomeTitle"); if (h) h.textContent = custom || WELCOME_DEFAULT;
+  const i = $("#welcomeInput"); if (i && document.activeElement !== i) i.value = custom;
+}
+$("#welcomeForm")?.addEventListener("submit", async event => {
+  event.preventDefault(); const btn = $("#welcomeForm button[type=submit]"), msg = $("#welcomeMsg"); btn.disabled = true; setMsg(msg, "");
+  try {
+    const s = appState.settings || {}, value = $("#welcomeInput").value.trim().slice(0, 60);
+    await api("/api/settings", { method: "PUT", body: JSON.stringify({ ct_datetime: s.ct_datetime || "", syllabus_title: value, syllabus_text: s.syllabus_text || "" }) });
+    await loadData(); showToast("Welcome title saved."); setMsg(msg, "Saved.");
+  } catch (err) { setMsg(msg, err.message || "Could not save. Please try again.", true); }
+  finally { btn.disabled = false; }
+});
 function resetNoticeForm() {
   appState.editingId = null; $("#noticeForm").reset(); syncChips(); $("#editingId").value = ""; $("#cancelEdit").classList.add("hidden"); $("#noticeForm button[type=submit]").textContent = "Publish notice"; $("#noticeFormMessage").textContent = "";
 }
@@ -469,7 +485,7 @@ function renderInfoPanels() {
   $("#upCount").textContent = u ? `${u} upcoming` : "Course, CT & date";
   const todayN = dayClasses(dhakaDow()).length;
   $("#exCount").textContent = todayN ? `${todayN} ${todayN === 1 ? "class" : "classes"} today` : (x ? `${x} exam${x === 1 ? "" : "s"} scheduled` : "Class & exam");
-  renderUpcoming(); renderExams(); renderClassRoutine(); renderCalendar();
+  renderUpcoming(); renderExams(); renderClassRoutine(); renderCalendar(); renderWeek();
 }
 function setMsg(node, text, isError) { node.textContent = text; node.style.color = isError ? "var(--err)" : ""; }
 
@@ -532,6 +548,51 @@ function calEvents() {
   (appState.notices || []).forEach(n => { const type = noticeType[n.category]; if (type && n.relevant_date) add(String(n.relevant_date).slice(0, 10), type, n.title, ""); });
   return map;
 }
+/* ---------- This Week: 7-day activity weight graph, filled from the Unlucky Calendar ---------- */
+const WEEK_WEIGHT = { "Exam": 5, "CT": 3, "CT / Quiz": 3, "Assignment": 2, "Countdown": 2 };
+let weekSel = "", weekToday = "";
+function weekDays() {
+  const [y, m, d] = dhakaToday().split("-").map(Number), base = Date.UTC(y, m - 1, d), back = (new Date(base).getUTCDay() + 1) % 7; // week runs Saturday to Friday
+  return Array.from({ length: 7 }, (_, i) => { const t = new Date(base + (i - back) * 86400000); return { key: t.getUTCFullYear() + "-" + pad2(t.getUTCMonth() + 1) + "-" + pad2(t.getUTCDate()), date: t }; });
+}
+function renderWeek(animate = true) {
+  const wrap = $("#weekChart"); if (!wrap) return;
+  const today = dhakaToday(), days = weekDays(), events = calEvents();
+  weekToday = today; if (!days.some(x => x.key === weekSel)) weekSel = today;
+  const fmt = (t, o) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...o }).format(t);
+  const data = days.map(x => { const list = events[x.key] || []; return { ...x, list, pts: list.reduce((s, e) => s + (WEEK_WEIGHT[e.type] || 1), 0) }; });
+  const total = data.reduce((s, x) => s + x.pts, 0), max = Math.max(7, ...data.map(x => x.pts)), avgPct = Math.min(100, (total / 7) / max * 92);
+  const count = (...types) => data.reduce((s, x) => s + x.list.filter(e => types.includes(e.type)).length, 0);
+  $("#weekRange").textContent = fmt(days[0].date, { day: "numeric", month: "short" }) + " – " + fmt(days[6].date, { day: "numeric", month: "short" });
+
+  const chips = $("#weekChips"); chips.innerHTML = "";
+  [["Activities", data.reduce((s, x) => s + x.list.length, 0)], ["Exams", count("Exam")], ["CT / Quiz", count("CT", "CT / Quiz")], ["Assignments", count("Assignment")]].forEach(([label, n]) => {
+    const chip = el("span", "wk-chip"); chip.append(el("span", "", label), el("i", "wk-sep"), el("b", n ? "" : "zero", String(n))); chips.append(chip);
+  });
+
+  wrap.innerHTML = ""; wrap.style.setProperty("--avg", avgPct.toFixed(1));
+  const grid = el("div", "wk-grid"), bars = [];
+  data.forEach(x => {
+    const on = x.key === weekSel, p = x.pts ? x.pts / max * 92 : 0;
+    const col = el("button", "wk-col" + (on ? " is-sel" : "") + (x.key === today ? " is-today" : "")); col.type = "button"; col.setAttribute("aria-pressed", on ? "true" : "false");
+    col.setAttribute("aria-label", fmt(x.date, { weekday: "long", day: "numeric", month: "short" }) + ": " + x.list.length + (x.list.length === 1 ? " activity" : " activities") + ", weight " + x.pts);
+    const track = el("span", "wk-track"), bar = el("span", "wk-bar" + (x.pts ? "" : " empty"));
+    bar.style.setProperty("--p", animate ? 0 : p); bars.push([bar, p]); track.append(bar);
+    if (on) track.append(el("span", "wk-dot"));
+    const day = el("span", "wk-day"); day.append(el("b", "", fmt(x.date, { weekday: "short" })), el("small", "", fmt(x.date, { day: "numeric" })));
+    col.append(track, day); col.addEventListener("click", () => { weekSel = x.key; renderWeek(false); }); grid.append(col);
+  });
+  const avgLabel = el("span", "wk-avg-label" + (data.findIndex(x => x.key === weekSel) <= 2 ? " right" : ""), "7-day avg.");
+  wrap.append(grid, el("div", "wk-avg"), avgLabel);
+  if (animate) requestAnimationFrame(() => requestAnimationFrame(() => bars.forEach(([b, p]) => b.style.setProperty("--p", p))));
+
+  const sel = data.find(x => x.key === weekSel) || data[0];
+  $("#weekTitle").textContent = (sel.key === today ? "Today · " : "") + fmt(sel.date, { weekday: "long", day: "numeric", month: "long" });
+  $("#weekSub").textContent = sel.list.length ? sel.list.length + (sel.list.length === 1 ? " activity" : " activities") + " · weight " + sel.pts : "Nothing scheduled. A free day.";
+  const ul = $("#weekList"); ul.innerHTML = "";
+  sel.list.forEach(e => { const li = el("li", "wk-item"); li.append(el("span", "wk-tag", e.type), el("span", "wk-name", e.title)); ul.append(li); });
+}
+setInterval(() => { if (weekToday && dhakaToday() !== weekToday) renderWeek(); }, 60000);
 function openCalendar() { const t = dhakaToday().split("-"); calYear = +t[0]; calMonth = +t[1] - 1; calSelected = ""; renderCalendar(); }
 function shiftCalMonth(delta) { const d = new Date(Date.UTC(calYear, calMonth + delta, 1)); calYear = d.getUTCFullYear(); calMonth = d.getUTCMonth(); calSelected = ""; renderCalendar(); }
 function selectCalDay(key) { calSelected = calSelected === key ? "" : key; renderCalendar(); const b = $(`#calBody [data-key="${key}"]`); if (b) b.focus(); }
@@ -859,6 +920,11 @@ async function enablePush(silent = false) {
 }
 $("#alertBtn")?.addEventListener("click", async () => { if (await refreshPushBtn()) disablePush(); else enablePush(); });
 $("#pushAllow")?.addEventListener("click", async () => { if (await enablePush()) closeModal("pushModal"); });
+const PUSH_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+const pushSnoozed = () => { try { return Date.now() - Number(localStorage.getItem("bupPushSnooze") || 0) < PUSH_SNOOZE_MS; } catch { return false; } };
+function skipPushPrompt() { try { localStorage.setItem("bupPushSnooze", String(Date.now())); } catch {} closeModal("pushModal"); }
+$("#pushSkip")?.addEventListener("click", skipPushPrompt);
+document.querySelector("[data-push-skip]")?.addEventListener("click", skipPushPrompt);
 async function firstVisitPrompt() {
   if (!pushSupported()) return;
   if (Notification.permission === "granted") {
@@ -866,6 +932,7 @@ async function firstVisitPrompt() {
     return;
   }
   if (Notification.permission !== "default") return;
+  if (pushSnoozed()) return;
   setTimeout(() => showModal("pushModal"), 600);
 }
 setInterval(() => { if (!document.hidden) loadData(true); }, 60000);
