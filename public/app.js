@@ -125,7 +125,6 @@ function tickCountdown() {
   });
 }
 const expandedIds = new Set();
-const REACTS = [["love", "❤️", "Love"], ["halo", "😇", "Saint smile"], ["upside", "🙃", "Upside-down saint smile"]];
 const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 function linkify(text) {
   const frag = document.createDocumentFragment(); let last = 0;
@@ -144,26 +143,25 @@ async function copyText(text) {
   catch { const t = document.createElement("textarea"); t.value = text; t.style.cssText = "position:fixed;opacity:0"; document.body.append(t); t.select(); try { document.execCommand("copy"); } catch {} t.remove(); }
   showToast("Copied to clipboard.");
 }
-function buildReacts(n) {
-  const box = el("div", "reacts");
-  REACTS.forEach(([kind, emoji, label]) => {
-    const on = n.mine === kind, b = el("button", "react-btn" + (on ? " on" : "")); b.type = "button"; b.title = label; b.setAttribute("aria-label", label); b.setAttribute("aria-pressed", on ? "true" : "false");
-    b.append(el("span", "react-emo", emoji), el("span", "react-n", String((n.reactions || {})[kind] || 0)));
-    b.addEventListener("click", () => reactTo(n, kind)); box.append(b);
-  });
-  return box;
-}
-function paintReacts(n, pop) {
-  $$(`[data-notice-id="${n.id}"] .reacts`).forEach((old) => { const nb = buildReacts(n); old.replaceWith(nb); if (pop) { const on = nb.querySelector(".react-btn.on"); if (on) on.classList.add("pop"); } });
-}
-async function reactTo(n, kind) {
-  const prev = { mine: n.mine, reactions: { ...(n.reactions || {}) } }, next = n.mine === kind ? null : kind;
-  n.reactions = n.reactions || {};
-  if (n.mine) n.reactions[n.mine] = Math.max(0, (n.reactions[n.mine] || 0) - 1);
-  if (next) n.reactions[next] = (n.reactions[next] || 0) + 1;
-  n.mine = next; paintReacts(n, true);
-  try { await api(`/api/notices/${n.id}/react`, { method: "POST", body: JSON.stringify({ kind: next }) }); }
-  catch (error) { n.mine = prev.mine; n.reactions = prev.reactions; paintReacts(n, false); showToast(error.message); }
+function fmtViews(n) { n = Number(n) || 0; return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n); }
+function paintViews(n) { $$(`[data-notice-id="${n.id}"] .view-n`).forEach(x => { x.textContent = fmtViews(n.views); }); }
+const viewedNow = new Set();
+let viewObserver = null;
+function observeViews() {
+  if (viewObserver) viewObserver.disconnect();
+  if (!("IntersectionObserver" in window)) return;
+  viewObserver = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      const card = en.target, id = Number(card.dataset.noticeId);
+      viewObserver.unobserve(card);
+      if (viewedNow.has(id)) return;
+      viewedNow.add(id);
+      const n = appState.notices.find(x => x.id === id); if (!n) return;
+      api(`/api/notices/${id}/view`, { method: "POST", body: "{}" }).then(r => { if (r && typeof r.views === "number") { n.views = r.views; paintViews(n); } }).catch(() => { viewedNow.delete(id); });
+    });
+  }, { threshold: 0.6 });
+  $$(".notice-card").forEach(c => { if (c.offsetParent !== null) viewObserver.observe(c); });
 }
 function applyClamp(card) {
   const id = Number(card.dataset.noticeId), body = card.querySelector(".notice-body"), more = card.querySelector(".see-more");
@@ -181,7 +179,9 @@ function noticeCard(n) {
   more.addEventListener("click", () => { if (expandedIds.has(n.id)) expandedIds.delete(n.id); else expandedIds.add(n.id); $$(`[data-notice-id="${n.id}"]`).forEach(applyClamp); });
   const actions = el("div", "notice-actions"), copy = el("button", "copy-btn"); copy.type = "button"; copy.title = "Copy this update"; copy.setAttribute("aria-label", "Copy this update");
   copy.append(icon("i-copy"), el("span", "", "Copy")); copy.addEventListener("click", () => copyText(`${n.title}\n\n${n.body}`));
-  actions.append(buildReacts(n), copy);
+  const eye = el("span", "view-count"); eye.title = "Views"; eye.setAttribute("aria-label", "Views");
+  eye.append(icon("i-eye"), el("span", "view-n", fmtViews(n.views)));
+  actions.append(copy, eye);
   const footer = el("div", "notice-footer"); footer.append(el("span", "", formatCreated(n.created_at)), el("span", "notice-date", n.relevant_date ? prettyDate(n.relevant_date) : ""));
   article.append(meta, el("h3", "", n.title), body, more, actions, footer);
   return article;
@@ -192,7 +192,7 @@ function renderNotices() {
   filtered.forEach(n => list.append(noticeCard(n)));
   const pins = appState.notices.filter(n => n.pinned), pl = $("#pinnedList"); pl.innerHTML = "";
   pins.forEach(n => pl.append(noticeCard(n))); $("#pinnedEmpty").classList.toggle("hidden", pins.length > 0);
-  requestAnimationFrame(fitNotices);
+  requestAnimationFrame(() => { fitNotices(); observeViews(); });
 }
 window.addEventListener("resize", fitNotices);
 
@@ -462,20 +462,21 @@ function readStore() {
   else if (exRaw && typeof exRaw === "object") { exTitle = safeText(exRaw.t); exItems = Array.isArray(exRaw.i) ? exRaw.i : []; }
   return {
     cts: getCountdowns(),
+    upTitle: ok ? safeText(p.ul) : "", upCol: ok ? safeText(p.uc) : "",
     up: up.map(r => ({ course: safeText(r.c), ct: safeText(r.n), date: safeText(r.d) })),
     ex: { title: exTitle, items: exItems.map(r => ({ date: safeText(r.d), course: safeText(r.c), time: safeText(r.m), syllabus: safeText(r.s) })) }
   };
 }
 function packStore(st) {
   return JSON.stringify({
-    v: 2, cts: [],
+    v: 2, cts: [], ul: st.upTitle || "", uc: st.upCol || "",
     up: st.up.map(r => ({ c: r.course, n: r.ct, d: r.date })),
     ex: { t: st.ex.title, i: st.ex.items.map(r => ({ d: r.date, c: r.course, m: r.time, s: r.syllabus })) }
   });
 }
 async function saveStore(patch) {
   const s = appState.settings || {}, cur = readStore();
-  const json = packStore({ cts: cur.cts, up: cur.up, ex: cur.ex, ...patch });
+  const json = packStore({ cts: cur.cts, up: cur.up, ex: cur.ex, upTitle: cur.upTitle, upCol: cur.upCol, ...patch });
   if (json.length > STORE_LIMIT) throw new Error(`Too much saved text (${json.length}/${STORE_LIMIT}). Shorten some entries or CT syllabus text and save again.`);
   await api("/api/settings", { method: "PUT", body: JSON.stringify({ ct_datetime: s.ct_datetime || "", syllabus_title: s.syllabus_title || "", syllabus_text: json }) });
 }
@@ -492,10 +493,10 @@ function withDays(list) {
 }
 function renderUpcoming() {
   const box = $("#upBody"); box.innerHTML = "";
-  const rows = withDays(readStore().up);
-  if (!rows.length) { box.append(el("div", "info-empty", "No upcoming CT has been added yet.")); return; }
+  const stU = readStore(), rows = withDays(stU.up), colName = stU.upCol || "CT", titleName = stU.upTitle || "Upcoming CT";
+  if (!rows.length) { box.append(el("div", "info-empty", `No ${titleName.toLowerCase()} has been added yet.`)); return; }
   const wrap = el("div", "table-wrap"), table = el("table", "info-table"), thead = el("thead"), hr = el("tr");
-  ["Course", "CT", "Date", "Remaining"].forEach(h => { const th = el("th", "", h); th.scope = "col"; hr.append(th); });
+  ["Course", colName, "Date", "Remaining"].forEach(h => { const th = el("th", "", h); th.scope = "col"; hr.append(th); });
   thead.append(hr);
   const tbody = el("tbody");
   rows.forEach(r => {
@@ -525,7 +526,9 @@ function renderInfoPanels() {
   const st = readStore();
   const live = (arr) => arr.filter(r => !isPast(daysLeft(r.date))).length;
   const u = live(st.up), x = live(st.ex.items);
-  $("#upCount").textContent = u ? `${u} upcoming` : "Course, CT & date";
+  const upT = st.upTitle || "Upcoming CT", upC = st.upCol || "CT";
+  $("#upLabel").textContent = upT; $("#upTitle").textContent = upT;
+  $("#upCount").textContent = u ? `${u} upcoming` : `Course, ${upC} & date`;
   const todayN = dayClasses(dhakaDow()).length;
   $("#exCount").textContent = todayN ? `${todayN} ${todayN === 1 ? "class" : "classes"} today` : (x ? `${x} exam${x === 1 ? "" : "s"} scheduled` : "Class & exam");
   renderUpcoming(); renderExams(); renderClassRoutine(); renderCalendar();
@@ -560,6 +563,7 @@ function addExItem(r = {}, open = true) {
 }
 function fillStoreForms() {
   const st = readStore();
+  $("#upTitleInput").value = st.upTitle; $("#upColInput").value = st.upCol;
   $("#upRows").innerHTML = ""; (st.up.length ? st.up : [{}]).forEach(r => addUpRow(r));
   $("#exMainTitle").value = st.ex.title;
   $("#exRows").innerHTML = ""; st.ex.items.forEach(r => addExItem(r, false)); if (!st.ex.items.length) addExItem({}, true);
@@ -651,8 +655,8 @@ $("#upForm").addEventListener("submit", async event => {
       if (!course || !date) throw new Error(`Row ${i + 1}: course name and date are required.`);
       up.push({ course, ct, date });
     });
-    await saveStore({ up });
-    await loadData(); setMsg(msg, "Upcoming CT list saved.", false); showToast("Upcoming CT updated.");
+    await saveStore({ up, upTitle: $("#upTitleInput").value.trim(), upCol: $("#upColInput").value.trim() });
+    await loadData(); setMsg(msg, "Saved.", false); showToast("Updated.");
   } catch (error) { setMsg(msg, error.message, true); }
   finally { btn.disabled = false; }
 });
@@ -693,24 +697,44 @@ function dayChips(box, current, onPick, showDots) {
     b.addEventListener("click", () => onPick(i)); box.append(b);
   });
 }
+const OFF_DAY = 5; // Friday
+function classCard(c, isToday, now) {
+  const s = toMin(c.start_time), e = toMin(c.end_time), live = isToday && s !== null && now >= s && (e === null ? now < s + 60 : now < e);
+  const card = el("article", "cls-card" + (live ? " live" : "")), time = el("div", "cls-time"), main = el("div", "cls-main");
+  time.append(el("strong", "", fmt12(c.start_time)), el("span", "", c.end_time ? fmt12(c.end_time) : ""));
+  const title = el("h3", "", c.course); if (live) title.append(el("span", "cls-now", "Now"));
+  main.append(title); const meta = el("div", "cls-meta");
+  if (c.room) { const r = el("span", "cls-chip"); r.append(icon("i-pin"), document.createTextNode("Room " + c.room)); meta.append(r); }
+  if (c.faculty) { const f = el("span", "cls-chip"); f.append(icon("i-user"), document.createTextNode(c.faculty)); meta.append(f); }
+  if (meta.childNodes.length) main.append(meta);
+  card.append(time, main); return card;
+}
 function renderClassRoutine() {
-  const today = dhakaDow(); if (rtDay === null) rtDay = today;
-  dayChips($("#dayChips"), rtDay, (i) => { rtDay = i; renderClassRoutine(); }, true);
-  const box = $("#clsBody"); box.innerHTML = ""; const list = dayClasses(rtDay), now = dhakaNowMin();
-  const head = el("div", "cls-head"), t = el("div"); t.append(el("strong", "", rtDay === today ? "Today's classes" : DAY_NAMES[rtDay] + " classes"), el("small", "", DAY_NAMES[rtDay] + (list.length ? ` · ${list.length} ${list.length === 1 ? "class" : "classes"}` : "")));
-  head.append(t); box.append(head);
-  if (!list.length) { box.append(el("div", "info-empty", rtDay === today ? "No class today. Enjoy your day!" : "No class on " + DAY_NAMES[rtDay] + ".")); return; }
-  list.forEach(c => {
-    const s = toMin(c.start_time), e = toMin(c.end_time), live = rtDay === today && s !== null && now >= s && (e === null ? now < s + 60 : now < e);
-    const card = el("article", "cls-card" + (live ? " live" : "")), time = el("div", "cls-time"), main = el("div", "cls-main");
-    time.append(el("strong", "", fmt12(c.start_time)), el("span", "", c.end_time ? fmt12(c.end_time) : ""));
-    const title = el("h3", "", c.course); if (live) title.append(el("span", "cls-now", "Now"));
-    main.append(title); const meta = el("div", "cls-meta");
-    if (c.room) { const r = el("span", "cls-chip"); r.append(icon("i-pin"), document.createTextNode("Room " + c.room)); meta.append(r); }
-    if (c.faculty) { const f = el("span", "cls-chip"); f.append(icon("i-user"), document.createTextNode(c.faculty)); meta.append(f); }
-    if (meta.childNodes.length) main.append(meta);
-    card.append(time, main); box.append(card);
+  const today = dhakaDow(); if (rtDay === null) rtDay = today; // -1 = everything closed
+  const box = $("#clsBody"); box.innerHTML = ""; const now = dhakaNowMin();
+  const list = el("div", "rd-list");
+  DAY_NAMES.forEach((name, i) => {
+    const classes = dayClasses(i), off = i === OFF_DAY, open = rtDay === i;
+    const item = el("div", "rd-item" + (off ? " is-off" : "") + (open ? " open" : "") + (i === today ? " is-today" : ""));
+    const row = el("button", "rd-row"); row.type = "button"; row.setAttribute("aria-expanded", open ? "true" : "false");
+    const left = el("span", "rd-name", name);
+    if (i === today) left.append(el("em", "rd-today", "Today"));
+    const sub = off && !classes.length ? "Off day" : (classes.length ? `${classes.length} ${classes.length === 1 ? "class" : "classes"}` : "No class");
+    const right = el("span", "rd-sub", sub), chev = el("span", "rd-chev"); chev.setAttribute("aria-hidden", "true");
+    row.append(left, right, chev);
+    const panel = el("div", "rd-panel"), inner = el("div", "rd-inner");
+    if (classes.length) classes.forEach(c => inner.append(classCard(c, i === today, now)));
+    else inner.append(el("div", "rd-empty", off ? "Friday is an off day." : (i === today ? "No class today. Enjoy your day!" : "No class on " + name + ".")));
+    panel.append(inner); item.append(row, panel);
+    row.addEventListener("click", () => {
+      const willOpen = !item.classList.contains("open");
+      $$(".rd-item.open", list).forEach(x => { x.classList.remove("open"); x.querySelector(".rd-row").setAttribute("aria-expanded", "false"); });
+      if (willOpen) { item.classList.add("open"); row.setAttribute("aria-expanded", "true"); }
+      rtDay = willOpen ? i : -1;
+    });
+    list.append(item);
   });
+  box.append(list);
 }
 function setRtTab(name) {
   $$(".rt-tab").forEach(b => { const on = b.dataset.rt === name; b.classList.toggle("active", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
@@ -809,7 +833,7 @@ function scheduleChanges() {
 function timeAgo(t) { if (!t) return "Earlier"; const m = Math.round((Date.now() - t) / 60000); if (m < 1) return "Just now"; if (m < 60) return m + " min ago"; if (m < 1440) return Math.round(m / 60) + " h ago"; return Math.round(m / 1440) + " d ago"; }
 function popAlert(i) {
   showToast("New from CR: " + i.title);
-  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("BUP ICE · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
+  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("Batch 96 · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
 }
 function updateNotifs() {
   let extra = loadExtra(); const added = scheduleChanges();
