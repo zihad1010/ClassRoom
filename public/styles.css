@@ -356,13 +356,6 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .notice-body.clamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .see-more{align-self:flex-start;border:0;background:none;padding:6px 0 0;font-weight:600;font-size:13px;color:var(--acc);cursor:pointer}
 .notice-link{color:var(--acc);text-decoration:underline;text-underline-offset:3px;font-weight:500;word-break:break-all}
-.notice-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:14px}
-.reacts{display:flex;gap:6px;flex-wrap:wrap}
-.react-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--sunk);color:var(--ink2);border-radius:999px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .15s,background .15s}
-.react-btn:active{transform:scale(.92)}
-.react-emo{font-size:17px;line-height:1}
-.react-btn.on{background:var(--tint);border-color:var(--acc);color:var(--ink)}
-.react-btn.pop .react-emo{animation:rpop .4s cubic-bezier(.3,1.6,.5,1)}
 @keyframes rpop{0%{transform:scale(.5)}60%{transform:scale(1.5)}100%{transform:scale(1)}}
 .copy-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--ink2);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
 .copy-btn .ic{width:15px;height:15px}
@@ -389,26 +382,6 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .stat:hover .stat-icon{transform:translateY(-2px)}
 
 /* polls */
-.poll-list{display:grid;gap:14px;margin-bottom:16px}
-.poll-card{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:20px 20px 16px;box-shadow:0 14px 30px -22px rgba(0,0,0,.4)}
-.poll-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.poll-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--acc);letter-spacing:.06em;text-transform:uppercase}
-.poll-badge .ic{width:16px;height:16px}
-.poll-time{font-size:12px;color:var(--muted)}
-.poll-q{font-size:18px;font-weight:600;letter-spacing:-.02em;margin:0 0 14px;overflow-wrap:anywhere}
-.poll-opts{display:grid;gap:8px}
-.poll-opt{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:16px;padding:12px 14px;cursor:pointer;font:inherit}
-.poll-bar{position:absolute;left:0;top:0;bottom:0;background:var(--tint);transition:width .5s ease;z-index:0}
-.poll-opt.on{border-color:var(--acc)}.poll-opt.on .poll-bar{background:var(--tint2)}
-.poll-opt>*:not(.poll-bar){position:relative;z-index:1}
-.poll-tick{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);display:grid;place-items:center;flex:0 0 auto}
-.poll-opt.on .poll-tick{background:var(--black);border-color:var(--black);color:#fff}
-.poll-tick .ic{width:12px;height:12px;stroke-width:3}
-.poll-label{flex:1;min-width:0;font-size:14px;font-weight:500;overflow-wrap:anywhere}
-.poll-num{text-align:right;line-height:1.1}.poll-num strong{display:block;font-size:14px}.poll-num small{font-size:11px;color:var(--muted)}
-.poll-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;font-size:12px;color:var(--muted)}
-.poll-who{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
-.poll-who .ic{width:14px;height:14px}
 .prem-tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#2a2410;background:linear-gradient(160deg,#f1e2ae,#cdb978);border-radius:999px;padding:2px 7px}
 .prem-icon .ic{width:26px;height:26px}
 .voter-group{border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-top:10px}
@@ -417,7 +390,6 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .voter-none{font-size:12px;color:var(--muted);margin-top:6px}
 .voter-names{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .voter-chip{background:var(--sunk);border-radius:999px;padding:4px 10px;font-size:12px}
-.poll-opt-row{display:flex;gap:8px;margin-bottom:8px}.poll-opt-row input{flex:1}
 .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .stat-grid>div{background:var(--sunk);border-radius:18px;padding:14px;text-align:center}
 .stat-grid strong{display:block;font-size:26px;font-weight:600;color:var(--acc)}
@@ -435,25 +407,8 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .notice-card.is-pinned .category{background:rgba(29,74,56,.1);border-color:transparent}
 .notice-card h3{font-weight:650;letter-spacing:-.025em}
 .notice-footer{border-top-style:dashed}
-.react-btn{background:var(--card);box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 4px 10px -8px rgba(20,35,28,.6)}
-.react-btn.on{background:linear-gradient(150deg,var(--tint),var(--tint2));box-shadow:0 6px 14px -8px rgba(29,74,56,.7)}
 .copy-btn:hover{background:var(--sunk)}
 
-.poll-card{position:relative;overflow:hidden;border-radius:30px;background:linear-gradient(165deg,var(--card),var(--sunk));box-shadow:inset 0 1px 0 rgba(255,255,255,.55),var(--shadow-soft)}
-:root[data-theme=dark] .poll-card{box-shadow:inset 0 1px 0 rgba(255,255,255,.05),var(--shadow-soft)}
-.poll-card:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,var(--black),var(--gold-line),var(--black))}
-.poll-top{margin-top:4px}
-.poll-badge{background:var(--tint);color:var(--black);border-radius:999px;padding:5px 12px}
-:root[data-theme=dark] .poll-badge{color:var(--acc)}
-.poll-q{font-size:19px;font-weight:650}
-.poll-opt{border-radius:18px;padding:14px 15px;background:var(--card);box-shadow:0 8px 16px -14px rgba(20,35,28,.7);transition:transform .15s,box-shadow .15s}
-.poll-opt:active{transform:scale(.985)}
-.poll-bar{background:linear-gradient(90deg,var(--tint2),var(--tint));border-radius:0 14px 14px 0}
-.poll-opt.on{border-color:transparent;box-shadow:0 0 0 1.5px var(--black) inset,0 10px 20px -14px rgba(29,74,56,.8)}
-.poll-opt.on .poll-bar{background:linear-gradient(90deg,var(--black),#3d8a68);opacity:.9}
-.poll-opt.on .poll-label,.poll-opt.on .poll-num strong,.poll-opt.on .poll-num small{color:#fff}
-.poll-opt.on .poll-tick{background:#fff;border-color:#fff;color:var(--black)}
-.poll-num strong{font-variant-numeric:tabular-nums}
 
 .rt-tabs{display:flex;gap:4px;padding:5px;background:var(--sunk);border-radius:999px;margin:4px 0 18px}
 .rt-tab{flex:1;border:0;background:transparent;color:var(--ink2);border-radius:999px;padding:10px 8px;font-size:13px;font-weight:600;cursor:pointer}
@@ -484,44 +439,234 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .cls-row .cls-course,.cls-row .cls-faculty,.cls-row .mini-button{grid-column:1/-1}
 .cls-tl span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin:0 0 3px 4px}
 
-/* ===== v3: no golden shadows, glass pinned card, view count ===== */
-.ct-card{border:1px solid rgba(255,255,255,.08);box-shadow:none}
-.countdown>div{border:1px solid rgba(255,255,255,.1);box-shadow:none}
-.ct-foot .pill{border-color:rgba(255,255,255,.22)}
-.ct-syllabus-toggle{border-color:rgba(255,255,255,.3)}
-.notice-card,:root[data-theme=dark] .notice-card{box-shadow:none}
-.notice-card:before{display:none}
-.notice-card.is-pinned,:root[data-theme=dark] .notice-card.is-pinned{background:rgba(18,20,19,.72);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid rgba(255,255,255,.12);box-shadow:none;color:#eef2ef}
-.notice-card.is-pinned h3,:root:not([data-theme=dark]) .notice-card.is-pinned h3{color:#fff}
-.notice-card.is-pinned .notice-body{color:rgba(255,255,255,.78)}
-.notice-card.is-pinned .category,:root[data-theme=dark] .notice-card.is-pinned .category{background:rgba(255,255,255,.12);color:#e6ece8}
-.notice-card.is-pinned .notice-footer{border-top-color:rgba(255,255,255,.14);color:rgba(255,255,255,.55)}
-.notice-card.is-pinned .notice-date{color:rgba(255,255,255,.75)}
-.notice-card.is-pinned .see-more,.notice-card.is-pinned .notice-link{color:#a9d9b5}
-.notice-card.is-pinned .copy-btn{border-color:rgba(255,255,255,.22);color:#eef2ef}
-.notice-card.is-pinned .copy-btn:hover{background:rgba(255,255,255,.1)}
-.notice-card.is-pinned .view-count{color:rgba(255,255,255,.7)}
-.view-count{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
-.view-count .ic{width:17px;height:17px}
+/* ===== v4: Instagram-style line-art reactions ===== */
+.copy-btn{border:0;background:none;padding:4px 6px;color:var(--ink2)}
+.copy-btn .ic{width:23px;height:23px;stroke-width:1.7}
 
-/* ===== v3: class routine as a day list with slide-down panels ===== */
-.rd-list{display:flex;flex-direction:column;gap:8px}
-.rd-row{width:100%;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:18px;padding:15px 16px;font:inherit;text-align:left;cursor:pointer;transition:background .2s}
-.rd-name{flex:1;min-width:0;font-size:16px;font-weight:650;letter-spacing:-.01em}
-.rd-today{margin-left:8px;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:var(--tint);color:var(--ink);border-radius:999px;padding:3px 8px;vertical-align:middle}
-.rd-sub{font-size:12px;font-weight:600;color:var(--muted)}
-.rd-chev{width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:-4px 4px 0 2px;opacity:.6;transition:transform .3s}
-.rd-item.open .rd-chev{transform:rotate(-135deg);margin-top:4px}
-.rd-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
-.rd-item.open .rd-panel{grid-template-rows:1fr}
-.rd-inner{overflow:hidden;min-height:0}
-.rd-item.open .rd-inner{padding-top:8px}
-.rd-inner .cls-card{background:#fff;box-shadow:none}
-:root[data-theme=dark] .rd-inner .cls-card{background:var(--card)}
-.rd-inner .cls-card:last-child{margin-bottom:2px}
-.rd-empty{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;font-size:13px;color:var(--ink2);text-align:center}
-:root[data-theme=dark] .rd-empty{background:var(--card)}
-.rd-item.is-off .rd-row{background:linear-gradient(150deg,#dc3b36,#b02a25);border-color:transparent;color:#fff}
-.rd-item.is-off .rd-sub{color:rgba(255,255,255,.85)}
-.rd-item.is-off .rd-today{background:rgba(255,255,255,.22);color:#fff}
-@media(prefers-reduced-motion:reduce){.rd-panel,.rd-chev{transition:none}}
+/* ===== v5: home like the reference design ===== */
+body.on-home{background:#d6ded2 linear-gradient(180deg,#f3efb0 0,#e4e8c0 130px,#d2dccd 320px,#d6ded2 100%)}
+:root[data-theme=dark] body.on-home{background:var(--bg) linear-gradient(180deg,#2a5640 0,#1a3a2a 240px,var(--bg) 520px)}
+.home-sheet{position:relative;margin:-120px -18px calc(-112px - env(safe-area-inset-bottom));padding:150px 18px calc(124px + env(safe-area-inset-bottom));background:#fcfcfb;border-radius:42px 42px 0 0;min-height:60vh}
+:root[data-theme=dark] .home-sheet{background:var(--card)}
+#ctWrap.hidden + .home-sheet{margin-top:10px;padding-top:26px}
+.ct-wrap{position:relative;z-index:2}
+.home-sheet .sec-head:first-of-type{margin-top:26px}
+
+/* countdown card: green glossy card with soft waves */
+.ct-card{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='none'%3E%3Cpath d='M0 195C70 150 135 235 225 192S350 128 400 160V300H0Z' fill='%23135a38' fill-opacity='.3'/%3E%3Cpath d='M0 75C80 22 150 125 250 62S365 10 400 42V0H0Z' fill='%23ffffff' fill-opacity='.16'/%3E%3C/svg%3E") center/100% 100% no-repeat,linear-gradient(135deg,#9fd38b 0%,#6cb073 42%,#3d8956 100%);border:0;border-radius:30px;box-shadow:0 32px 38px -24px rgba(48,105,70,.9),inset 0 1px 0 rgba(255,255,255,.4)}
+:root[data-theme=dark] .ct-card{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='none'%3E%3Cpath d='M0 195C70 150 135 235 225 192S350 128 400 160V300H0Z' fill='%23062b1a' fill-opacity='.4'/%3E%3Cpath d='M0 75C80 22 150 125 250 62S365 10 400 42V0H0Z' fill='%23ffffff' fill-opacity='.1'/%3E%3C/svg%3E") center/100% 100% no-repeat,linear-gradient(135deg,#4a9d70 0%,#287350 45%,#144a31 100%);box-shadow:0 32px 38px -24px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.18)}
+.ct-card:before{display:none}
+.ct-eyebrow,.countdown span{color:rgba(255,255,255,.88)}
+.ct-top p{color:rgba(255,255,255,.88)}
+.countdown>div{border-color:rgba(255,255,255,.38);background:linear-gradient(165deg,rgba(255,255,255,.3),rgba(255,255,255,.08))}
+.cd-seconds strong{color:#fff}
+.ct-foot .pill{border-color:rgba(255,255,255,.45);color:#fff;background:rgba(0,0,0,.12)}
+.ct-syllabus-toggle{background:rgba(14,66,42,.62);border:1px solid rgba(255,255,255,.28);color:#fff}
+
+/* pinned notices: compact tiles like the reference "latest payments" cards */
+.pin-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;margin:0 -18px;padding:4px 18px 10px;scrollbar-width:none}
+.pin-row::-webkit-scrollbar{display:none}
+.pin-tile{flex:0 0 150px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:4px;background:#ececec;border-radius:30px;padding:16px 12px 15px;text-align:center;cursor:pointer;transition:transform .15s}
+.pin-tile:active{transform:scale(.97)}
+:root[data-theme=dark] .pin-tile{background:var(--sunk)}
+.pin-avatar{position:relative;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;margin-bottom:8px;color:#fff;background:linear-gradient(150deg,#93d08a,#3d8956);box-shadow:0 12px 18px -12px rgba(48,105,70,.95)}
+.pin-badge{position:absolute;top:-2px;right:-5px;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(150deg,#dc3b36,#a72421);border:2px solid #ececec}
+:root[data-theme=dark] .pin-badge{border-color:var(--sunk)}
+.pin-badge .ic{width:12px;height:12px}
+.pin-cat{font-size:12px;color:var(--muted)}
+.pin-tile h3{margin:0;font-size:14.5px;font-weight:600;line-height:1.3;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.pin-date{font-size:12px;color:var(--ink2)}
+
+/* poll: no golden strip on top */
+
+/* ===== v6: countdown card with your picture, smaller and fixed size ===== */
+.ct-slide{justify-content:center}
+.ct-slide .ct-card,.ct-card{width:86%;max-width:360px;height:272px;padding:20px 18px 18px;display:flex;flex-direction:column;justify-content:space-between;border-radius:28px;
+  background:linear-gradient(180deg,rgba(6,28,18,.38) 0%,rgba(6,28,18,.2) 38%,rgba(6,28,18,.62) 100%),url("./countdown-bg.jpg") center/cover no-repeat;
+  box-shadow:0 30px 36px -24px rgba(20,60,40,.9),inset 0 1px 0 rgba(255,255,255,.3)}
+:root[data-theme=dark] .ct-card{background:linear-gradient(180deg,rgba(2,14,9,.5) 0%,rgba(2,14,9,.3) 38%,rgba(2,14,9,.72) 100%),url("./countdown-bg.jpg") center/cover no-repeat;box-shadow:0 30px 36px -24px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.15)}
+.ct-top{min-height:84px;flex:0 0 auto}
+.ct-heading{min-width:0}
+.ct-top h2{font-size:clamp(19px,5.4vw,23px);line-height:1.2;margin:6px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 2px 10px rgba(0,0,0,.55)}
+.ct-eyebrow,.ct-top p{text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.ct-top p{margin:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.countdown{gap:8px;margin:0}
+.countdown>div{padding:11px 2px 9px;border-radius:18px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);background:linear-gradient(165deg,rgba(255,255,255,.26),rgba(255,255,255,.07))}
+.countdown strong{font-size:clamp(22px,6.8vw,30px)}
+.countdown span{font-size:9px;letter-spacing:.12em}
+.ct-foot{flex-wrap:nowrap}
+.ct-foot .pill{padding:7px 11px;font-size:11px}
+.ct-syllabus-toggle{padding:8px 13px;font-size:12px;white-space:nowrap}
+
+/* pinned tiles: icon background colour by category */
+.pin-avatar[data-cat="Class"]{background:linear-gradient(150deg,#93d08a,#3d8956);box-shadow:0 12px 18px -12px rgba(48,105,70,.95)}
+.pin-avatar[data-cat="Assignment"]{background:linear-gradient(150deg,#86c9f4,#2f78c4);box-shadow:0 12px 18px -12px rgba(47,120,196,.95)}
+.pin-avatar[data-cat="Quiz / CT"]{background:linear-gradient(150deg,#ffc872,#e0781a);box-shadow:0 12px 18px -12px rgba(224,120,26,.95)}
+.pin-avatar[data-cat="Exam"]{background:linear-gradient(150deg,#bfa4f7,#6b49c9);box-shadow:0 12px 18px -12px rgba(107,73,201,.95)}
+.pin-avatar[data-cat="Other"]{background:linear-gradient(150deg,#8fdad2,#2a8f94);box-shadow:0 12px 18px -12px rgba(42,143,148,.95)}
+
+/* poll: bar colour follows the vote ranking (most votes = green, then blue, amber, purple, teal) */
+
+/* ===== v7: countdown layout (time on top, title+date in the middle), glass-black notice cards, no gold line ===== */
+.ct-top{display:none}
+.ct-card{justify-content:space-between;gap:10px}
+.ct-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.ct-title,.ct-date{margin:0;max-width:100%;color:#fff;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.ct-title{font-size:clamp(15px,4.6vw,18px);font-weight:650;line-height:1.25;letter-spacing:-.01em;padding:8px 16px;border-radius:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ct-date{font-size:12px;font-weight:500;padding:5px 14px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* pinned tiles: Class is no longer green */
+.pin-avatar{background:linear-gradient(150deg,#b4bec9,#6b7a89);box-shadow:0 12px 18px -12px rgba(80,95,110,.9)}
+.pin-avatar[data-cat="Class"]{background:linear-gradient(150deg,#f7a1c4,#c93e86);box-shadow:0 12px 18px -12px rgba(201,62,134,.95)}
+
+/* ===== v8: countdown boxes/title/date like the buttons, glass-black pinned card, white update cards, reactions at the very bottom ===== */
+.countdown>div{background:rgba(14,66,42,.62);border:1px solid rgba(255,255,255,.28);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+.ct-title,.ct-date{background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.45);-webkit-backdrop-filter:none;backdrop-filter:none}
+
+/* update cards: no golden line / glow on top */
+.notice-card:before{display:none!important;content:none!important}
+.notice-card:not(.is-pinned){background:#fff;border:1px solid rgba(20,35,28,.1);color:var(--ink);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 12px 26px -20px rgba(20,35,28,.35)}
+:root[data-theme=dark] .notice-card:not(.is-pinned){background:var(--card);border-color:var(--line);box-shadow:0 12px 26px -20px rgba(0,0,0,.8)}
+.notice-card:not(.is-pinned) h3{color:var(--ink)}
+.notice-card:not(.is-pinned) .notice-body{color:var(--ink2)}
+.notice-card:not(.is-pinned) .category{background:var(--tint);border-color:transparent;color:var(--black)}
+:root[data-theme=dark] .notice-card:not(.is-pinned) .category{color:var(--acc)}
+.notice-card:not(.is-pinned) .notice-footer{border-top-color:var(--line);color:var(--muted)}
+.notice-card:not(.is-pinned) .notice-date{color:var(--ink2)}
+.notice-card:not(.is-pinned) .notice-link,.notice-card:not(.is-pinned) .see-more{color:var(--acc)}
+.notice-card:not(.is-pinned) .react-btn,.notice-card:not(.is-pinned) .copy-btn{color:var(--ink2)}
+.notice-card:not(.is-pinned) .copy-btn:hover{background:var(--sunk)}
+.notice-card.is-pinned,:root[data-theme=dark] .notice-card.is-pinned{background:linear-gradient(150deg,rgba(38,40,39,.86),rgba(10,12,11,.8));border:1px solid rgba(255,255,255,.16);color:#fff;-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:0 22px 34px -22px rgba(0,0,0,.8)}
+.notice-card.is-pinned h3,:root[data-theme=dark] .notice-card.is-pinned h3{color:#fff}
+.notice-card.is-pinned .notice-body,:root[data-theme=dark] .notice-card.is-pinned .notice-body{color:rgba(255,255,255,.84)}
+.notice-card.is-pinned .category,:root[data-theme=dark] .notice-card.is-pinned .category{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+.notice-card.is-pinned .notice-footer,:root[data-theme=dark] .notice-card.is-pinned .notice-footer{border-top-color:rgba(255,255,255,.16);color:rgba(255,255,255,.62)}
+.notice-card.is-pinned .notice-date,:root[data-theme=dark] .notice-card.is-pinned .notice-date{color:rgba(255,255,255,.85)}
+.notice-card.is-pinned .notice-link,.notice-card.is-pinned .see-more,:root[data-theme=dark] .notice-card.is-pinned .notice-link,.notice-card.is-pinned .see-more{color:#a6e8c4}
+.notice-card.is-pinned .react-btn,.notice-card.is-pinned .copy-btn,:root[data-theme=dark] .notice-card.is-pinned .react-btn,.notice-card.is-pinned .copy-btn{color:rgba(255,255,255,.82)}
+.notice-card.is-pinned .copy-btn:hover{background:rgba(255,255,255,.1)}
+
+/* reactions + copy sit at the very bottom of the card */
+.notice-spacer{flex:1 1 auto;min-height:16px}
+.notice-footer{margin-top:0}
+
+/* selected reaction: filled, but with a neutral (non-coloured) fill */
+
+/* ===== v9: title+date top-left, time boxes in the middle (each a different see-through colour), pinned title white ===== */
+.ct-card{justify-content:flex-start}
+.ct-mid{flex:0 0 auto;align-items:flex-start;text-align:left;justify-content:flex-start;gap:6px}
+.ct-title,.ct-date{align-self:flex-start}
+.ct-title{max-width:100%}
+.countdown{margin:auto 0}
+.countdown>div{border:1px solid rgba(255,255,255,.42);-webkit-backdrop-filter:blur(5px) saturate(135%);backdrop-filter:blur(5px) saturate(135%);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 10px 20px -14px rgba(0,0,0,.6)}
+.countdown>.cd-days{background:linear-gradient(165deg,rgba(74,222,128,.42),rgba(74,222,128,.12))}
+.countdown>.cd-hours{background:linear-gradient(165deg,rgba(96,165,250,.44),rgba(96,165,250,.12))}
+.countdown>.cd-minutes{background:linear-gradient(165deg,rgba(251,191,36,.44),rgba(251,191,36,.12))}
+.countdown>.cd-seconds{background:linear-gradient(165deg,rgba(244,114,182,.44),rgba(244,114,182,.12))}
+.countdown>div:after{display:none}
+.countdown strong{text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.foot-spacer{display:none}
+
+.notice-card.is-pinned h3,:root[data-theme=dark] .notice-card.is-pinned h3,:root:not([data-theme=dark]) .notice-card.is-pinned h3{color:#fff!important}
+
+/* ===== v10: routine day chips, see-through colour per day (Friday and Saturday red) ===== */
+.day-chip{--dr:74,196,128;background:linear-gradient(165deg,rgba(var(--dr),.32),rgba(var(--dr),.1));border:1px solid rgba(var(--dr),.5);-webkit-backdrop-filter:blur(6px) saturate(130%);backdrop-filter:blur(6px) saturate(130%);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.day-chip[data-day="0"]{--dr:74,196,128}
+.day-chip[data-day="1"]{--dr:96,165,250}
+.day-chip[data-day="2"]{--dr:251,191,36}
+.day-chip[data-day="3"]{--dr:168,130,250}
+.day-chip[data-day="4"]{--dr:20,184,196}
+.day-chip[data-day="5"],.day-chip[data-day="6"]{--dr:239,68,68;background:linear-gradient(165deg,rgba(var(--dr),.5),rgba(var(--dr),.2))}
+.day-chip small{color:var(--ink2)}
+.day-chip strong{color:var(--ink)}
+.day-chip .day-dot{background:rgb(var(--dr))}
+.day-chip.is-today{border-color:rgba(var(--dr),.95)}
+.day-chip.active{background:linear-gradient(165deg,rgba(var(--dr),.85),rgba(var(--dr),.5));border-color:rgb(var(--dr));box-shadow:0 0 0 1.5px rgba(var(--dr),.9),0 10px 18px -10px rgba(var(--dr),.95)}
+.day-chip.active small,.day-chip.active strong{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35)}
+.day-chip.active .day-dot{background:#fff}
+
+/* Sunday: pink instead of green */
+.day-chip,.day-chip[data-day="0"]{--dr:244,114,182}
+.day-chip[data-day="1"]{--dr:96,165,250}
+.day-chip[data-day="2"]{--dr:251,191,36}
+.day-chip[data-day="3"]{--dr:168,130,250}
+.day-chip[data-day="4"]{--dr:20,184,196}
+.day-chip[data-day="5"],.day-chip[data-day="6"]{--dr:239,68,68}
+
+/* ===== v11: ash home background, class time box takes the day's colour, syllabus left / counting down right ===== */
+body.on-home{background:#d3d4d1 linear-gradient(180deg,#ebebe8 0,#dfdfdc 130px,#d3d4d1 320px,#d3d4d1 100%)}
+:root[data-theme=dark] body.on-home{background:var(--bg) linear-gradient(180deg,#2a5640 0,#1a3a2a 240px,var(--bg) 520px)}
+
+.cls-card{--dr:244,114,182}
+.cls-card[data-day="0"]{--dr:244,114,182}
+.cls-card[data-day="1"]{--dr:96,165,250}
+.cls-card[data-day="2"]{--dr:251,191,36}
+.cls-card[data-day="3"]{--dr:168,130,250}
+.cls-card[data-day="4"]{--dr:20,184,196}
+.cls-card[data-day="5"],.cls-card[data-day="6"]{--dr:239,68,68}
+.cls-time{background:linear-gradient(165deg,rgba(var(--dr),.55),rgba(var(--dr),.22));border:1px solid rgba(var(--dr),.55);color:var(--ink);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.cls-time strong{color:var(--ink)}
+.cls-time span{color:var(--ink2)}
+
+.ct-foot{justify-content:space-between}
+
+
+/* ===== v12: compact countdown card (reference design): title + pill, glass time tiles, white syllabus strip ===== */
+:root{--ct-a:#2a7653;--ct-b:#123a2b;--ct-c:#0c2a1f}
+:root[data-theme=dark]{--ct-a:#1f5a42;--ct-b:#0f3626;--ct-c:#07170f}
+.ct-slide .ct-card,.ct-card{
+  position:relative;overflow:hidden;width:90%;max-width:380px;height:auto;min-height:0;padding:16px 16px 14px;display:flex;flex-direction:column;justify-content:flex-start;gap:12px;border-radius:28px;border:1px solid rgba(255,255,255,.14);
+  background:
+    radial-gradient(130px 130px at 92% 6%,rgba(190,240,205,.34),rgba(190,240,205,0) 70%),
+    radial-gradient(160px 120px at 4% 112%,rgba(120,210,160,.22),rgba(120,210,160,0) 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 240' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.11' stroke-width='1.2'%3E%3Ccircle cx='350' cy='20' r='46'/%3E%3Ccircle cx='350' cy='20' r='78'/%3E%3Ccircle cx='350' cy='20' r='112'/%3E%3C/g%3E%3Cpath d='M0 186C70 156 140 214 230 182S350 150 400 172V240H0Z' fill='%23ffffff' fill-opacity='.05'/%3E%3Cpath d='M0 206C80 180 160 232 250 204S360 184 400 198V240H0Z' fill='%23000000' fill-opacity='.12'/%3E%3C/svg%3E") center/100% 100% no-repeat,
+    linear-gradient(150deg,var(--ct-a) 0%,var(--ct-b) 58%,var(--ct-c) 100%);
+  box-shadow:0 26px 30px -24px rgba(8,36,24,.95),inset 0 1px 0 rgba(255,255,255,.2)}
+:root[data-theme=dark] .ct-card{box-shadow:0 26px 30px -24px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.1)}
+.ct-card .ct-mid{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;text-align:left}
+.ct-card .ct-title{align-self:flex-start;max-width:100%;margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;font-size:clamp(16px,4.8vw,19px);font-weight:600;line-height:1.25;letter-spacing:-.01em;color:#fff;text-shadow:none;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ct-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%}
+.ct-card .pill{border:1px solid rgba(255,255,255,.34);background:rgba(255,255,255,.06);color:#fff;padding:6px 13px;font-size:11.5px;font-weight:600;border-radius:999px;white-space:nowrap}
+.ct-card .ct-date{align-self:auto;margin:0;padding:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;font-size:11.5px;font-weight:500;color:rgba(255,255,255,.78);text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ct-card .ct-date[hidden]{display:none}
+.ct-card .countdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.ct-card .countdown>div,.ct-card .countdown>.cd-days,.ct-card .countdown>.cd-hours,.ct-card .countdown>.cd-minutes,.ct-card .countdown>.cd-seconds{max-width:none;padding:9px 2px 8px;border-radius:16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.ct-card .countdown strong{font-size:clamp(20px,6vw,25px);font-weight:600;color:#fff;text-shadow:none}
+.ct-card .countdown span{display:block;margin-top:2px;font-size:9.5px;letter-spacing:.04em;text-transform:none;color:rgba(255,255,255,.72)}
+.ct-syl{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;background:#f2f7f1;color:#14231c;border-radius:18px;padding:10px 12px 10px 14px}
+.ct-syl-main{min-width:0;flex:1}
+.ct-syl-label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1d4a38;margin-bottom:2px}
+.ct-syl-text{margin:0;font-size:12.5px;line-height:1.4;color:#33443a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;white-space:pre-line}
+.ct-syl-more{flex:0 0 auto;border:0;background:#1d4a38;color:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.ct-syl-more[hidden]{display:none}
+.ct-syl-more:focus-visible{outline:2px solid #1d4a38;outline-offset:2px}
+.ct-card.is-done .countdown strong{opacity:.55}
+.home-sheet{margin-top:-84px;padding-top:112px}
+#ctWrap.hidden + .home-sheet{margin-top:10px;padding-top:26px}
+
+/* ===== v12: notice footer = post date, views (eye) and copy ===== */
+.notice-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:0;padding-top:12px}
+.notice-footer .nf-date{font-size:12px;color:inherit;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-views{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:inherit;margin-left:auto}
+.nf-views .ic{width:17px;height:17px;stroke-width:1.7}
+.notice-footer .copy-btn{margin:0;border:0;background:none;padding:4px;border-radius:10px;color:inherit}
+.notice-footer .copy-btn .ic{width:19px;height:19px;stroke-width:1.7}
+.notice-card:not(.is-pinned) .notice-footer .copy-btn{color:var(--ink2)}
+.notice-card.is-pinned .notice-footer .copy-btn{color:rgba(255,255,255,.82)}
+
+/* ===== v13: class routine - today section on top, tap a day to see its routine ===== */
+.cls-today{margin-bottom:6px;padding:12px 12px 2px;border-radius:26px;background:linear-gradient(165deg,var(--tint),transparent 70%);border:1px solid var(--line)}
+.cls-today .cls-head{margin:0 2px 10px}
+.cls-today .cls-card:last-child{margin-bottom:10px}
+.cls-today .info-empty{margin-bottom:10px}
+#clsPane #dayChips{margin-top:16px}
+#clsBody .cls-head{padding-top:2px}
+.cls-card.is-done{opacity:.55}
+.cls-card.is-live{border-color:var(--gold-line);box-shadow:0 0 0 1px var(--gold-line),var(--shadow-soft)}
+.cls-next{background:linear-gradient(160deg,#cfe4ff,#8fb8ee);color:#10264a}
+.cls-card .cls-time{flex-basis:92px}
+.cls-card .cls-time span:before{content:"to ";opacity:.75}
+.cls-card .cls-time span:empty:before{content:none}
+.cls-anim .cls-card{animation:clsIn .32s ease both;animation-delay:calc(var(--i,0) * 60ms)}
+@keyframes clsIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.cls-anim .cls-card{animation:none}}
