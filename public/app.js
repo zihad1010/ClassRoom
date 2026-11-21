@@ -577,11 +577,12 @@ function renderWeek(animate = true) {
     return { ...w, list, pts: list.reduce((s, e) => s + (WEEK_WEIGHT[e.type] || 1), 0) };
   });
   const total = data.reduce((s, x) => s + x.pts, 0), max = Math.max(10, ...data.map(x => x.pts)), avgPct = Math.min(100, (total / data.length) / max * 92);
-  const count = (...types) => data.reduce((s, x) => s + x.list.filter(e => types.includes(e.type)).length, 0);
+  const chipWeek = data[Math.max(0, data.findIndex(x => x.key === weekSel))];   // chips show the tapped week, not the whole month
+  const count = (...types) => chipWeek.list.filter(e => types.includes(e.type)).length;
   $("#weekRange").textContent = fmt(data[0].from, { month: "long", year: "numeric" });
 
   const chips = $("#weekChips"); chips.innerHTML = "";
-  [["Activities", data.reduce((s, x) => s + x.list.length, 0)], ["Exams", count("Exam")], ["CT / Quiz", count("CT", "CT / Quiz")], ["Assignments", count("Assignment")]].forEach(([label, n]) => {
+  [["Activities", chipWeek.list.length], ["Exams", count("Exam")], ["CT / Quiz", count("CT", "CT / Quiz")], ["Assignments", count("Assignment")]].forEach(([label, n]) => {
     const chip = el("span", "wk-chip"); chip.append(el("span", "", label), el("i", "wk-sep"), el("b", n ? "" : "zero", String(n))); chips.append(chip);
   });
 
