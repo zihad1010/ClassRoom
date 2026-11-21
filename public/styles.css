@@ -483,3 +483,45 @@ button.cal-day.has-ev.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--black)}
 .cls-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px}
 .cls-row .cls-course,.cls-row .cls-faculty,.cls-row .mini-button{grid-column:1/-1}
 .cls-tl span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin:0 0 3px 4px}
+
+/* ===== v3: no golden shadows, glass pinned card, view count ===== */
+.ct-card{border:1px solid rgba(255,255,255,.08);box-shadow:none}
+.countdown>div{border:1px solid rgba(255,255,255,.1);box-shadow:none}
+.ct-foot .pill{border-color:rgba(255,255,255,.22)}
+.ct-syllabus-toggle{border-color:rgba(255,255,255,.3)}
+.notice-card,:root[data-theme=dark] .notice-card{box-shadow:none}
+.notice-card:before{display:none}
+.notice-card.is-pinned,:root[data-theme=dark] .notice-card.is-pinned{background:rgba(18,20,19,.72);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid rgba(255,255,255,.12);box-shadow:none;color:#eef2ef}
+.notice-card.is-pinned h3,:root:not([data-theme=dark]) .notice-card.is-pinned h3{color:#fff}
+.notice-card.is-pinned .notice-body{color:rgba(255,255,255,.78)}
+.notice-card.is-pinned .category,:root[data-theme=dark] .notice-card.is-pinned .category{background:rgba(255,255,255,.12);color:#e6ece8}
+.notice-card.is-pinned .notice-footer{border-top-color:rgba(255,255,255,.14);color:rgba(255,255,255,.55)}
+.notice-card.is-pinned .notice-date{color:rgba(255,255,255,.75)}
+.notice-card.is-pinned .see-more,.notice-card.is-pinned .notice-link{color:#a9d9b5}
+.notice-card.is-pinned .copy-btn{border-color:rgba(255,255,255,.22);color:#eef2ef}
+.notice-card.is-pinned .copy-btn:hover{background:rgba(255,255,255,.1)}
+.notice-card.is-pinned .view-count{color:rgba(255,255,255,.7)}
+.view-count{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.view-count .ic{width:17px;height:17px}
+
+/* ===== v3: class routine as a day list with slide-down panels ===== */
+.rd-list{display:flex;flex-direction:column;gap:8px}
+.rd-row{width:100%;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:18px;padding:15px 16px;font:inherit;text-align:left;cursor:pointer;transition:background .2s}
+.rd-name{flex:1;min-width:0;font-size:16px;font-weight:650;letter-spacing:-.01em}
+.rd-today{margin-left:8px;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:var(--tint);color:var(--ink);border-radius:999px;padding:3px 8px;vertical-align:middle}
+.rd-sub{font-size:12px;font-weight:600;color:var(--muted)}
+.rd-chev{width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:-4px 4px 0 2px;opacity:.6;transition:transform .3s}
+.rd-item.open .rd-chev{transform:rotate(-135deg);margin-top:4px}
+.rd-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
+.rd-item.open .rd-panel{grid-template-rows:1fr}
+.rd-inner{overflow:hidden;min-height:0}
+.rd-item.open .rd-inner{padding-top:8px}
+.rd-inner .cls-card{background:#fff;box-shadow:none}
+:root[data-theme=dark] .rd-inner .cls-card{background:var(--card)}
+.rd-inner .cls-card:last-child{margin-bottom:2px}
+.rd-empty{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;font-size:13px;color:var(--ink2);text-align:center}
+:root[data-theme=dark] .rd-empty{background:var(--card)}
+.rd-item.is-off .rd-row{background:linear-gradient(150deg,#dc3b36,#b02a25);border-color:transparent;color:#fff}
+.rd-item.is-off .rd-sub{color:rgba(255,255,255,.85)}
+.rd-item.is-off .rd-today{background:rgba(255,255,255,.22);color:#fff}
+@media(prefers-reduced-motion:reduce){.rd-panel,.rd-chev{transition:none}}
