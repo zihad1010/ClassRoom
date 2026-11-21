@@ -718,12 +718,13 @@ body.on-home{background:var(--bg) linear-gradient(180deg,#f7f8fb 0,var(--bg) 380
 .pin-avatar,.pin-avatar[data-cat]{background:var(--black);color:#fff;box-shadow:none}
 .pin-badge,:root[data-theme=dark] .pin-badge{background:var(--card);color:var(--ink);border-color:var(--card)}
 
-/* bottom nav: white bar, black active icon */
-.bottom-nav{left:0;right:0;bottom:0;transform:none;max-width:480px;margin:0 auto;justify-content:space-around;gap:0;padding:10px 24px calc(12px + env(safe-area-inset-bottom));background:var(--card);border-radius:28px 28px 0 0;box-shadow:0 -14px 30px -20px rgba(70,80,110,.45)}
-.nav-btn,.nav-btn.active{width:60px;height:46px;border-radius:16px;background:none;box-shadow:none;color:var(--muted)}
-.nav-btn.active{color:var(--ink)}
-.nav-btn .ic{width:25px;height:25px}
-.nav-btn.active .ic{fill:none;stroke-width:2.2}
+/* bottom nav: same floating buttons as before, in the grey/black palette */
+.bottom-nav{position:fixed;z-index:8;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:10px;right:auto;max-width:none;margin:0;padding:0;background:none;border-radius:0;box-shadow:none;justify-content:flex-start}
+.nav-btn{width:62px;height:62px;border-radius:22px;border:0;background:#1b1c20;color:#a9adb8;display:grid;place-items:center;box-shadow:0 10px 26px rgba(20,24,40,.3);transition:transform .15s,color .15s,background .15s}
+.nav-btn .ic{width:26px;height:26px}
+.nav-btn.active{color:#fff;background:#3a3d46}
+.nav-btn.active .ic{fill:rgba(255,255,255,.2);stroke-width:1.8}
+.nav-btn:active{transform:scale(.94)}
 
 /* shared cards */
 .icon-btn{background:var(--card);border-color:transparent;box-shadow:var(--card-shadow)}
