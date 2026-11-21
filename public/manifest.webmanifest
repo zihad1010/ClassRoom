@@ -1,11 +1,11 @@
 {
-  "name": "My CR",
-  "short_name": "My CR",
+  "name": "Batch96",
+  "short_name": "Batch96",
   "description": "Class notices, assignments, quizzes and CT countdowns from your CR.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0a1a21",
+  "background_color": "#fefefe",
   "theme_color": "#0a1a21",
   "icons": [
     {
