@@ -748,7 +748,7 @@ window.addEventListener("hashchange", routeHash);
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
   try { localStorage.setItem("bupTheme", t); } catch {}
-  $("meta[name=theme-color]").content = t === "dark" ? "#0d0e11" : "#e9ebf2";
+  $("meta[name=theme-color]").content = t === "dark" ? "#0a1a21" : "#e6e1d8";
   $("#themeToggle use").setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
   $$("[data-theme-set]").forEach(b => b.classList.toggle("active", b.dataset.themeSet === t));
 }
