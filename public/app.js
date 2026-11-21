@@ -340,7 +340,7 @@ function renderAdminCountdowns() {
 }
 function fillCtForm() { renderAdminCountdowns(); }
 /* ---------- Home welcome title: set by the CR (stored in the existing settings "syllabus_title" field) ---------- */
-const WELCOME_DEFAULT = "Batch 96 Class Portal";
+const WELCOME_DEFAULT = "Batch96 Class Portal";
 function renderWelcome() {
   const custom = safeText((appState.settings || {}).syllabus_title).trim();
   const h = $("#welcomeTitle"); if (h) h.textContent = custom || WELCOME_DEFAULT;
@@ -550,7 +550,7 @@ function calEvents() {
 }
 /* ---------- This Month: weekly activity weight graph, filled from the Unlucky Calendar ---------- */
 const WEEK_WEIGHT = { "Exam": 5, "CT": 3, "CT / Quiz": 3, "Assignment": 2, "Countdown": 2 };
-let weekSel = "", weekToday = "";
+let weekSel = "", weekToday = "", weekOpen = false;
 const dayKey = (t) => t.getUTCFullYear() + "-" + pad2(t.getUTCMonth() + 1) + "-" + pad2(t.getUTCDate());
 function monthWeeks() {
   const [y, m] = dhakaToday().split("-").map(Number), DAY = 86400000;
@@ -610,7 +610,52 @@ function renderWeek(animate = true) {
     const li = el("li", "wk-item"); li.append(el("span", "wk-tag", e.type), el("span", "wk-name", fmt(new Date(e.key + "T00:00:00Z"), { weekday: "short", day: "numeric" }) + " · " + e.title)); ul.append(li);
   });
   if (sel.list.length > 10) ul.append(el("li", "wk-item", "+" + (sel.list.length - 10) + " more"));
+  syncWeekDetails();
 }
+function syncWeekDetails() { const b = $("#weekDetailsBtn"), d = $("#weekDetails"); if (!b || !d) return; d.classList.toggle("hidden", !weekOpen); b.setAttribute("aria-expanded", weekOpen ? "true" : "false"); b.classList.toggle("open", weekOpen); }
+$("#weekDetailsBtn").addEventListener("click", () => { weekOpen = !weekOpen; syncWeekDetails(); });
+/* ---------- Share the weekly dashboard (stats + graph) as a PNG ---------- */
+let weekFontCSS = null, weekSharing = false;
+const isSafariLike = () => /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent) || /iP(hone|ad|od)/.test(navigator.userAgent);
+const nextFrames = (n = 2) => new Promise(res => { const step = () => (--n <= 0 ? res() : requestAnimationFrame(step)); requestAnimationFrame(step); });
+async function weekImageBlob() {
+  if (!window.htmlToImage) throw new Error("html-to-image is not loaded");
+  renderWeek(false);                                   // fresh data, bars already at their final height
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await nextFrames(2);
+  const node = $(".week-panel"), ratio = 3, pad = 18;
+  if (weekFontCSS === null) { try { weekFontCSS = await htmlToImage.getFontEmbedCSS(node); } catch { weekFontCSS = ""; } }
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#f4f2ec";
+  const opts = { pixelRatio: ratio, fontEmbedCSS: weekFontCSS, cacheBust: false };
+  if (isSafariLike()) { try { await htmlToImage.toCanvas(node, opts); } catch {} }   // Safari needs a warm-up pass for fonts/images
+  const shot = await htmlToImage.toCanvas(node, opts);
+  const out = document.createElement("canvas"), p = pad * ratio;
+  out.width = shot.width + p * 2; out.height = shot.height + p * 2;
+  const ctx = out.getContext("2d"); ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(shot, p, p);
+  const blob = await new Promise(res => out.toBlob(res, "image/png"));
+  if (!blob) throw new Error("Could not encode the image");
+  return blob;
+}
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function shareWeek() {
+  if (weekSharing) return; weekSharing = true;
+  const btn = $("#weekShareBtn"); btn.disabled = true; btn.classList.add("busy"); btn.setAttribute("aria-busy", "true"); showToast("Preparing image…");
+  try {
+    const blob = await weekImageBlob(), name = "batch96-" + dhakaToday() + ".png", file = new File([blob], name, { type: "image/png" });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "Batch96", text: "Batch96 · this month's class activity" }); showToast("Shared."); }
+      catch (e) {
+        if (e && e.name === "AbortError") return;      // user closed the share sheet
+        downloadBlob(blob, name); showToast("Couldn't open the share menu, so the image was downloaded.");
+      }
+    } else { downloadBlob(blob, name); showToast("Sharing isn't supported on this device, so the image was downloaded."); }
+  } catch (e) { console.error(e); showToast("Couldn't create the image. Please try again."); }
+  finally { weekSharing = false; btn.disabled = false; btn.classList.remove("busy"); btn.removeAttribute("aria-busy"); }
+}
+$("#weekShareBtn").addEventListener("click", shareWeek);
 setInterval(() => { if (weekToday && dhakaToday() !== weekToday) renderWeek(); }, 60000);
 function openCalendar() { const t = dhakaToday().split("-"); calYear = +t[0]; calMonth = +t[1] - 1; calSelected = ""; renderCalendar(); }
 function shiftCalMonth(delta) { const d = new Date(Date.UTC(calYear, calMonth + delta, 1)); calYear = d.getUTCFullYear(); calMonth = d.getUTCMonth(); calSelected = ""; renderCalendar(); }
@@ -859,7 +904,7 @@ function scheduleChanges() {
 function timeAgo(t) { if (!t) return "Earlier"; const m = Math.round((Date.now() - t) / 60000); if (m < 1) return "Just now"; if (m < 60) return m + " min ago"; if (m < 1440) return Math.round(m / 60) + " h ago"; return Math.round(m / 1440) + " d ago"; }
 function popAlert(i) {
   showToast("New from CR: " + i.title);
-  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("BUP ICE · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
+  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("Batch96 · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
 }
 function updateNotifs() {
   let extra = loadExtra(); const added = scheduleChanges();
