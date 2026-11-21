@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#e9ebf2">
+  <meta name="theme-color" content="#e6e1d8">
   <script>try{var t=localStorage.getItem("bupTheme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="light"}</script>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
@@ -34,13 +34,13 @@
 </defs></svg>
 <div class="app">
   <header class="topbar">
-    <a class="brand" href="#home" aria-label="BUP ICE home"><span class="brand-mark"><img src="./icons/logo-white.png" alt=""></span><span><strong>BUP ICE</strong><small>Class update portal</small></span></a>
+    <a class="brand" href="#home" aria-label="Batch 96 home"><span class="brand-mark"><img src="./icons/logo-white.png" alt=""></span><span><strong>Batch 96</strong><small>Class update portal</small></span></a>
     <div class="top-actions"><button id="themeToggle" class="icon-btn" aria-label="Switch light or dark mode"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></button><button id="notifOpen" class="icon-btn" aria-label="Notifications"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span id="notifBadge" class="badge hidden">0</span></button></div>
   </header>
   <main>
     <section id="view-home" class="view">
       <h1 class="sr">Home</h1>
-      <div class="welcome"><p>Welcome to</p><h2>BUP ICE Class Portal</h2><small id="welcomeDate"></small></div>
+      <div class="welcome"><p>Welcome to</p><h2 id="welcomeTitle">Batch 96 Class Portal</h2><small id="welcomeDate"></small></div>
       <section id="ctWrap" class="ct-wrap" aria-label="Countdowns" aria-roledescription="carousel"><div id="ctSlider" class="ct-slider"></div><div id="ctDots" class="ct-dots"></div></section>
       <div class="home-sheet">
       <div class="quick">
@@ -52,6 +52,14 @@
       <div class="sec-head"><h2>Pinned notices</h2></div>
       <div id="pinnedList" class="pin-row"></div>
       <div id="pinnedEmpty" class="empty-state hidden"><h3>Nothing pinned</h3><p>Important notices pinned by the CR will stay here.</p></div>
+      <div class="sec-head"><h2>This Week</h2><span id="weekRange" class="week-range"></span></div>
+      <section id="weekCard" class="week-card" aria-label="Activities this week">
+        <div class="week-panel">
+          <div id="weekChips" class="week-chips"></div>
+          <div id="weekChart" class="wk-plot"></div>
+        </div>
+        <div class="week-foot"><h3 id="weekTitle"></h3><p id="weekSub"></p><ul id="weekList" class="week-list"></ul></div>
+      </section>
       </div>
     </section>
     <section id="view-feed" class="view hidden">
@@ -81,7 +89,8 @@
 
   <div id="adminModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><div class="modal-backdrop" data-close="adminModal"></div><div class="modal-card admin-card"><div class="admin-head"><div><div class="eyebrow">Manage class information</div><h2 id="adminTitle">CR Admin Panel</h2></div><div class="admin-head-actions"><button id="logoutBtn" class="ah-btn logout" type="button" aria-label="Logout" title="Logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg></button><button class="ah-btn" type="button" data-close="adminModal" aria-label="Close" title="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
     <div class="admin-tabs"><button class="admin-tab active" data-tab="noticeEditor"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg><span>Notice</span></button><button class="admin-tab" data-tab="ctEditor"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>Countdown</span></button><button class="admin-tab" data-tab="upEditor"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg><span>Upcoming</span></button><button class="admin-tab" data-tab="exEditor"><svg class="ic" aria-hidden="true"><use href="#i-exam"/></svg><span>Exams</span></button><button class="admin-tab" data-tab="clsEditor"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Class</span></button></div>
-    <section id="noticeEditor" class="admin-pane"><form id="noticeForm"><input id="editingId" type="hidden"><label for="noticeTitle">Notice title</label><input id="noticeTitle" maxlength="140" required placeholder="e.g. Structured Programming class rescheduled"><label>Category</label><div class="chips" id="catChips"></div><select id="noticeCategory" class="hidden"><option>Class</option><option>Assignment</option><option>Quiz / CT</option><option>Exam</option><option>Other</option></select><label for="noticeDate">Relevant date (optional)</label><input id="noticeDate" type="date"><label for="noticeBody">Details</label><textarea id="noticeBody" rows="5" maxlength="6000" required placeholder="Write the update clearly…"></textarea><label class="switch-row"><span><strong>Pin to top</strong><small>Keeps this notice on the home page</small></span><input id="noticePinned" type="checkbox"><i class="switch"></i></label><div class="form-row"><button id="cancelEdit" class="button button-soft hidden" type="button">Cancel edit</button><button class="button button-primary" type="submit">Publish notice</button></div><div id="noticeFormMessage" class="form-message" role="status"></div></form><div class="admin-existing"><h3>Manage published notices</h3><div id="adminNoticeList" class="admin-notice-list">Loading…</div></div><div class="admin-existing"><h3>App usage</h3><div class="stat-grid"><div><strong id="stDevices">–</strong><span>Devices used the app</span></div><div><strong id="stActive">–</strong><span>Active in 24 hours</span></div><div><strong id="stWeek">–</strong><span>Active in 7 days</span></div><div><strong id="stPush">–</strong><span>Phone alerts on</span></div></div></div></section>
+    <section id="noticeEditor" class="admin-pane"><form id="noticeForm"><input id="editingId" type="hidden"><label for="noticeTitle">Notice title</label><input id="noticeTitle" maxlength="140" required placeholder="e.g. Structured Programming class rescheduled"><label>Category</label><div class="chips" id="catChips"></div><select id="noticeCategory" class="hidden"><option>Class</option><option>Assignment</option><option>Quiz / CT</option><option>Exam</option><option>Other</option></select><label for="noticeDate">Relevant date (optional)</label><input id="noticeDate" type="date"><label for="noticeBody">Details</label><textarea id="noticeBody" rows="5" maxlength="6000" required placeholder="Write the update clearly…"></textarea><label class="switch-row"><span><strong>Pin to top</strong><small>Keeps this notice on the home page</small></span><input id="noticePinned" type="checkbox"><i class="switch"></i></label><div class="form-row"><button id="cancelEdit" class="button button-soft hidden" type="button">Cancel edit</button><button class="button button-primary" type="submit">Publish notice</button></div><div id="noticeFormMessage" class="form-message" role="status"></div></form><div class="admin-existing"><h3>Manage published notices</h3><div id="adminNoticeList" class="admin-notice-list">Loading…</div></div><div class="admin-existing"><h3>Home welcome title</h3><form id="welcomeForm"><label for="welcomeInput">Text after "Welcome to"</label><input id="welcomeInput" maxlength="60" placeholder="Batch 96 Class Portal" autocomplete="off"><small class="field-help">Shown on the home page of every student. Leave it empty to use the default.</small><button class="button button-primary full-width" type="submit" style="margin-top:12px">Save welcome title</button><div id="welcomeMsg" class="form-message" role="status"></div></form></div>
+        <div class="admin-existing"><h3>App usage</h3><div class="stat-grid"><div><strong id="stDevices">–</strong><span>Devices used the app</span></div><div><strong id="stActive">–</strong><span>Active in 24 hours</span></div><div><strong id="stWeek">–</strong><span>Active in 7 days</span></div><div><strong id="stPush">–</strong><span>Phone alerts on</span></div></div></div></section>
     <section id="ctEditor" class="admin-pane hidden"><form id="ctForm"><input id="cdEditingId" type="hidden"><label for="cdTitle">Countdown topic</label><input id="cdTitle" maxlength="80" required placeholder="e.g. CT-2 · Discrete Mathematics"><label for="cdDate">Date &amp; time</label><input id="cdDate" type="datetime-local" required><label for="cdNote">Details (optional)</label><textarea id="cdNote" rows="4" maxlength="1500" placeholder="Syllabus, venue or any note. New lines are preserved."></textarea><small class="field-help">Use Bangladesh time. Any topic works: CT, exam, assignment, event, trip…</small><div class="form-row"><button id="cdCancel" class="button button-soft hidden" type="button">Cancel edit</button><button class="button button-primary" type="submit">Add countdown</button></div><div id="ctFormMessage" class="form-message" role="status"></div></form><div class="admin-existing"><h3>Manage countdowns</h3><div id="adminCdList" class="admin-notice-list"></div></div></section>
     <section id="upEditor" class="admin-pane hidden"><form id="upForm"><div class="up-head" aria-hidden="true"><span>Course</span><span>CT no.</span><span>Date</span><span></span></div><div id="upRows"></div><button type="button" id="upAdd" class="button button-soft full-width">+ Add row</button><button class="button button-primary full-width" type="submit">Save upcoming CTs</button><div id="upFormMessage" class="form-message" role="status"></div></form><div class="notice-tip"><strong>Tip</strong><p>Add one row per class test. On the public card the CT with the fewest days left always stays on top, and passed CTs move to the bottom.</p></div></section>
     <section id="exEditor" class="admin-pane hidden"><form id="exForm"><label for="exMainTitle">Exam title</label><input id="exMainTitle" maxlength="80" placeholder="e.g. Mid Term Examination"><small class="field-help">One title for the whole routine. Below it, add each course with its date.</small><div id="exRows"></div><button type="button" id="exAdd" class="button button-soft full-width">+ Add course</button><button class="button button-primary full-width" type="submit">Save exam routine</button><div id="exFormMessage" class="form-message" role="status"></div></form><div class="notice-tip"><strong>Tip</strong><p>Write the exam title once, then add one entry per course: date, course name, exam time and syllabus. Entries are shown by date, nearest first.</p></div></section>
@@ -97,7 +106,38 @@
 
 <div id="sylModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sylTitle"><div class="modal-backdrop" data-close="sylModal"></div><div class="modal-card info-card"><button class="modal-close" data-close="sylModal" aria-label="Close">×</button><div class="modal-icon">▤</div><div class="eyebrow">Syllabus</div><h2 id="sylTitle">Countdown</h2><p id="sylDate"></p><div id="sylBody" class="syllabus-text"></div></div></div>
 
-<div id="pushModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pushTitle"><div class="modal-backdrop" data-close="pushModal"></div><div class="modal-card"><button class="modal-close" data-close="pushModal" aria-label="Close">×</button><div class="modal-icon">🔔</div><h2 id="pushTitle">Turn on phone alerts?</h2><p>Get a notification on your phone whenever the CR publishes a new notice.</p><button id="pushAllow" class="button button-primary full-width" type="button">Allow notifications</button></div></div>
+<div id="pushModal" class="modal push-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="pushTitle"><div class="modal-backdrop" data-push-skip></div><div class="modal-card push-card">
+  <svg class="push-art" viewBox="0 0 360 170" role="img" aria-label="Three classmates standing together" xmlns="http://www.w3.org/2000/svg">
+    <g class="pa-spark" fill="var(--acc)"><path d="M26 34l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><path class="pa-s2" d="M336 58l2.5 6.5 6.5 2.5-6.5 2.5-2.5 6.5-2.5-6.5-6.5-2.5 6.5-2.5z"/><path class="pa-s3" d="M318 14l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>
+    <g fill="var(--card)" stroke="var(--ink2)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+      <g class="pa-p1">
+        <path d="M54 80 Q75 94 96 80" fill="none" stroke="var(--tint2)" stroke-width="8"/>
+        <path d="M45 162 V110 C45 90 58 82 75 82 C92 82 105 90 105 110 V162"/>
+        <circle cx="75" cy="50" r="33"/>
+        <ellipse cx="53" cy="122" rx="11" ry="12"/>
+        <path d="M53 100 V108" fill="none"/>
+      </g>
+      <g class="pa-p3">
+        <path d="M262 80 Q285 96 308 80" fill="none" stroke="var(--tint2)" stroke-width="8"/>
+        <path d="M255 162 V112 C255 94 268 88 285 88 C302 88 315 94 315 112 V162"/>
+        <circle cx="285" cy="56" r="33"/>
+        <path d="M258 122 Q244 118 242 100" fill="none"/>
+        <ellipse cx="240" cy="98" rx="10" ry="12"/>
+        <path d="M238 88 L233 70" stroke-width="7"/>
+      </g>
+      <g class="pa-p2">
+        <path d="M158 76 Q180 90 202 76" fill="none" stroke="var(--tint2)" stroke-width="8"/>
+        <path d="M134 162 V114 C134 92 156 78 180 78 C204 78 226 92 226 114 V162"/>
+        <circle cx="180" cy="44" r="33"/>
+        <path d="M140 120 Q180 136 224 114" fill="none"/>
+        <path d="M144 108 Q184 126 222 122" fill="none"/>
+      </g>
+    </g>
+  </svg>
+  <h2 id="pushTitle">Turn on notifications</h2>
+  <p>Get notifications for new notices, assignments, quizzes and CT updates from your CR.</p>
+  <div class="push-actions"><button id="pushSkip" class="button button-soft" type="button">Skip</button><button id="pushAllow" class="button button-primary" type="button">Allow</button></div>
+</div></div>
 <div id="toast" class="toast" role="status"></div>
 <script src="./app.js" defer></script>
 </body>
