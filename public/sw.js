@@ -1,4 +1,4 @@
-const CACHE = "bup-ice-v17";
+const CACHE = "bup-ice-v18";
 const SHELL = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/favicon-32.png", "/icons/logo-white.png", "/icons/splash-logo.png", "/vendor/html-to-image.js"];
 
 self.addEventListener("install", (event) => {
