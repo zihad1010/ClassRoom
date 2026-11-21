@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-let appState = { notices: [], settings: {}, countdowns: [], polls: [], routine: [], isPremium: false, isAdmin: false, filter: "all", editingId: null };
+let appState = { notices: [], settings: {}, countdowns: [], routine: [], isAdmin: false, filter: "all", editingId: null };
 let toastTimer;
 const safeText = (value) => String(value ?? "");
 function showToast(message) { const toast = $("#toast"); toast.textContent = message; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 2800); }
@@ -37,7 +37,7 @@ function openSyllabus(ct) {
   ct = ct || {};
   $("#sylTitle").textContent = ct.title || "Countdown";
   $("#sylDate").textContent = "Date: " + (ct.datetime ? prettyDate(ct.datetime, true) : "Not scheduled");
-  $("#sylBody").textContent = ct.syllabus || "No extra details.";
+  $("#sylBody").textContent = ct.syllabus || "No syllabus added yet.";
   showModal("sylModal");
 }
 function buildCtSlider(n) {
@@ -47,19 +47,19 @@ function buildCtSlider(n) {
     const slide = el("article", "ct-slide");
     slide.setAttribute("role", "group"); slide.setAttribute("aria-roledescription", "slide"); slide.setAttribute("aria-label", `Countdown ${i + 1} of ${n}`);
     const card = el("div", "ct-card");
-    const top = el("div", "ct-top"), head = el("div", "ct-heading");
-    const title = el("h2"), meta = el("p", "ct-date");
-    head.append(el("span", "ct-eyebrow", "Countdown"), title, meta); top.append(head);
+    const mid = el("div", "ct-mid"), title = el("h2", "ct-title"), row = el("div", "ct-row");
+    const status = el("span", "pill"), meta = el("span", "ct-date");
+    row.append(status, meta); mid.append(title, row);
     const countdown = el("div", "countdown"), nums = {};
     [["days", "Days"], ["hours", "Hours"], ["minutes", "Minutes"], ["seconds", "Seconds"]].forEach(([key, label]) => {
       const box = el("div", "cd-" + key), num = el("strong", "", "--"); box.append(num, el("span", "", label)); countdown.append(box); nums[key] = num;
     });
-    const foot = el("div", "ct-foot"), status = el("span", "pill");
-    const toggle = el("button", "ct-syllabus-toggle", "See details"); toggle.type = "button"; toggle.setAttribute("aria-haspopup", "dialog");
-    const ref = { title, meta, status, nums, card, toggle, ct: null };
-    toggle.addEventListener("click", () => openSyllabus(ref.ct));
-    foot.append(status, toggle);
-    card.append(top, countdown, foot); slide.append(card); track.append(slide);
+    const syl = el("div", "ct-syl"), sylMain = el("div", "ct-syl-main"), sylText = el("p", "ct-syl-text");
+    const more = el("button", "ct-syl-more", "See more"); more.type = "button"; more.hidden = true; more.setAttribute("aria-haspopup", "dialog");
+    sylMain.append(el("strong", "ct-syl-label", "Syllabus"), sylText); syl.append(sylMain, more);
+    const ref = { title, meta, status, nums, card, sylText, more, ct: null };
+    more.addEventListener("click", () => openSyllabus(ref.ct));
+    card.append(mid, countdown, syl); slide.append(card); track.append(slide);
     ctRefs.push(ref);
     const dot = el("button", "ct-dot"); dot.type = "button"; dot.setAttribute("aria-label", `Show countdown ${i + 1}`);
     dot.addEventListener("click", () => { goToCt(i, true); startCtAuto(); });
@@ -101,12 +101,18 @@ function renderCountdown() {
   cts.forEach((ct, i) => {
     const r = ctRefs[i]; if (!r) return;
     r.title.textContent = ct.title || "Countdown";
-    r.meta.textContent = ct.datetime ? prettyDate(ct.datetime, true) : "Not scheduled";
-    r.toggle.hidden = !ct.syllabus;
+    r.meta.textContent = ct.datetime ? prettyDate(ct.datetime, true) : "";
+    r.meta.hidden = !ct.datetime;
+    r.sylText.textContent = ct.syllabus || "No syllabus added yet.";
     r.ct = ct;
   });
   tickCountdown();
+  requestAnimationFrame(fitCtSyl);
 }
+function fitCtSyl() {
+  ctRefs.forEach((r) => { if (r.sylText.offsetParent === null) return; r.more.hidden = !(r.sylText.scrollHeight > r.sylText.clientHeight + 1); });
+}
+window.addEventListener("resize", fitCtSyl);
 function tickCountdown() {
   const cts = ctSorted();
   if (ctSigOf(cts) !== ctSig || cts.length !== ctRefs.length) { renderCountdown(); return; }
@@ -143,26 +149,6 @@ async function copyText(text) {
   catch { const t = document.createElement("textarea"); t.value = text; t.style.cssText = "position:fixed;opacity:0"; document.body.append(t); t.select(); try { document.execCommand("copy"); } catch {} t.remove(); }
   showToast("Copied to clipboard.");
 }
-function fmtViews(n) { n = Number(n) || 0; return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n); }
-function paintViews(n) { $$(`[data-notice-id="${n.id}"] .view-n`).forEach(x => { x.textContent = fmtViews(n.views); }); }
-const viewedNow = new Set();
-let viewObserver = null;
-function observeViews() {
-  if (viewObserver) viewObserver.disconnect();
-  if (!("IntersectionObserver" in window)) return;
-  viewObserver = new IntersectionObserver((entries) => {
-    entries.forEach(en => {
-      if (!en.isIntersecting) return;
-      const card = en.target, id = Number(card.dataset.noticeId);
-      viewObserver.unobserve(card);
-      if (viewedNow.has(id)) return;
-      viewedNow.add(id);
-      const n = appState.notices.find(x => x.id === id); if (!n) return;
-      api(`/api/notices/${id}/view`, { method: "POST", body: "{}" }).then(r => { if (r && typeof r.views === "number") { n.views = r.views; paintViews(n); } }).catch(() => { viewedNow.delete(id); });
-    });
-  }, { threshold: 0.6 });
-  $$(".notice-card").forEach(c => { if (c.offsetParent !== null) viewObserver.observe(c); });
-}
 function applyClamp(card) {
   const id = Number(card.dataset.noticeId), body = card.querySelector(".notice-body"), more = card.querySelector(".see-more");
   if (!body || !more || body.offsetParent === null) return;
@@ -177,94 +163,73 @@ function noticeCard(n) {
   const body = el("div", "notice-body clamp"); body.append(linkify(safeText(n.body)));
   const more = el("button", "see-more", "See more"); more.type = "button"; more.hidden = true;
   more.addEventListener("click", () => { if (expandedIds.has(n.id)) expandedIds.delete(n.id); else expandedIds.add(n.id); $$(`[data-notice-id="${n.id}"]`).forEach(applyClamp); });
-  const actions = el("div", "notice-actions"), copy = el("button", "copy-btn"); copy.type = "button"; copy.title = "Copy this update"; copy.setAttribute("aria-label", "Copy this update");
-  copy.append(icon("i-copy"), el("span", "", "Copy")); copy.addEventListener("click", () => copyText(`${n.title}\n\n${n.body}`));
-  const eye = el("span", "view-count"); eye.title = "Views"; eye.setAttribute("aria-label", "Views");
-  eye.append(icon("i-eye"), el("span", "view-n", fmtViews(n.views)));
-  actions.append(copy, eye);
-  const footer = el("div", "notice-footer"); footer.append(el("span", "", formatCreated(n.created_at)), el("span", "notice-date", n.relevant_date ? prettyDate(n.relevant_date) : ""));
-  article.append(meta, el("h3", "", n.title), body, more, actions, footer);
+  const footer = el("div", "notice-footer");
+  const views = el("span", "nf-views"); views.title = "Views"; views.append(icon("i-eye"), el("span", "nf-views-n", String(n.views || 0)));
+  const copy = el("button", "copy-btn"); copy.type = "button"; copy.title = "Copy this update"; copy.setAttribute("aria-label", "Copy this update");
+  copy.append(icon("i-copy")); copy.addEventListener("click", () => copyText(`${n.title}\n\n${n.body}`));
+  footer.append(el("span", "nf-date", formatCreated(n.created_at).replace("Posted ", "")), views, copy);
+  article.append(meta, el("h3", "", n.title), body, more, el("div", "notice-spacer"), footer);
   return article;
+}
+function pinTile(n) {
+  const t = el("article", "pin-tile"); t.tabIndex = 0; t.setAttribute("role", "button"); t.setAttribute("aria-label", "Open pinned notice: " + n.title);
+  const av = el("div", "pin-avatar"); av.dataset.cat = n.category; const badge = el("span", "pin-badge"); av.append(icon(CAT_ICON[n.category] || "i-spark")); badge.append(icon("i-pin")); av.append(badge);
+  const open = () => { location.hash = "notice-" + n.id; };
+  t.addEventListener("click", open); t.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  t.append(av, el("small", "pin-cat", n.category), el("h3", "", n.title), el("span", "pin-date", n.relevant_date ? prettyDate(n.relevant_date) : formatCreated(n.created_at).replace("Posted ", "")));
+  return t;
 }
 function renderNotices() {
   const list = $("#noticeList"), filtered = appState.notices.filter(n => appState.filter === "all" || n.category === appState.filter);
   list.innerHTML = ""; $("#emptyState").classList.toggle("hidden", filtered.length > 0); list.classList.toggle("hidden", filtered.length === 0);
   filtered.forEach(n => list.append(noticeCard(n)));
   const pins = appState.notices.filter(n => n.pinned), pl = $("#pinnedList"); pl.innerHTML = "";
-  pins.forEach(n => pl.append(noticeCard(n))); $("#pinnedEmpty").classList.toggle("hidden", pins.length > 0);
-  requestAnimationFrame(() => { fitNotices(); observeViews(); });
+  pins.forEach(n => pl.append(pinTile(n))); $("#pinnedEmpty").classList.toggle("hidden", pins.length > 0);
+  requestAnimationFrame(fitNotices);
+  watchViews();
 }
 window.addEventListener("resize", fitNotices);
 
-/* ---------- Polls (WhatsApp style) ---------- */
-const pct = (n, t) => t ? Math.round(n * 100 / t) : 0;
-const votesLabel = (n) => `${n} ${n === 1 ? "vote" : "votes"}`;
-function renderPolls() {
-  const box = $("#pollList"); box.innerHTML = "";
-  (appState.polls || []).forEach(p => box.append(pollCard(p)));
-}
-function pollCard(p) {
-  const card = el("article", "poll-card"); card.dataset.pollId = p.id;
-  const top = el("div", "poll-top"), badge = el("span", "poll-badge"); badge.append(icon("i-poll"), document.createTextNode("Poll"));
-  top.append(badge, el("span", "poll-time", formatCreated(p.created_at).replace("Posted ", "")));
-  const opts = el("div", "poll-opts");
-  p.options.forEach((label, i) => {
-    const n = p.counts[i] || 0, mine = p.mine === i, b = el("button", "poll-opt" + (mine ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", mine ? "true" : "false");
-    const bar = el("span", "poll-bar"); bar.style.width = pct(n, p.total) + "%";
-    const tick = el("span", "poll-tick"); if (mine) tick.append(icon("i-check"));
-    const num = el("span", "poll-num"); num.append(el("strong", "", pct(n, p.total) + "%"), el("small", "", votesLabel(n)));
-    b.append(bar, tick, el("span", "poll-label", label), num); b.addEventListener("click", () => castVote(p, i)); opts.append(b);
-  });
-  const foot = el("div", "poll-foot"), who = el("button", "poll-who"); who.type = "button";
-  who.append(icon("i-lock"), document.createTextNode("See who voted"), el("span", "prem-tag", "Premium")); who.addEventListener("click", () => openVoters(p));
-  foot.append(el("span", "", votesLabel(p.total)), who);
-  card.append(top, el("h3", "poll-q", p.question), opts, foot);
-  return card;
-}
-let nameResolve = null;
-function ensureName() {
-  let saved = ""; try { saved = localStorage.getItem("bupName") || ""; } catch {}
-  if (saved) return Promise.resolve(saved);
-  return new Promise((res) => { nameResolve = res; $("#voterName").value = ""; showModal("nameModal"); setTimeout(() => $("#voterName").focus(), 60); });
-}
-$("#nameForm").addEventListener("submit", (e) => {
-  e.preventDefault(); const v = $("#voterName").value.trim(); if (!v) return;
-  try { localStorage.setItem("bupName", v); } catch {}
-  closeModal("nameModal"); const r = nameResolve; nameResolve = null; if (r) r(v);
-});
-$$('[data-close="nameModal"]').forEach(x => x.addEventListener("click", () => { if (nameResolve) { nameResolve(null); nameResolve = null; } }));
-async function castVote(p, i) {
-  try {
-    if (p.mine === i) await api(`/api/polls/${p.id}/vote`, { method: "POST", body: JSON.stringify({ option: null }) });
-    else { const name = await ensureName(); if (name === null) return; await api(`/api/polls/${p.id}/vote`, { method: "POST", body: JSON.stringify({ option: i, name }) }); }
-    await loadData(true);
-  } catch (error) { showToast(error.message); }
-}
-let pendingVoterPoll = null;
-async function openVoters(p) {
-  try {
-    const d = await api(`/api/polls/${p.id}/voters`);
-    $("#votersTitle").textContent = p.question; const box = $("#votersBody"); box.innerHTML = "";
-    d.options.forEach(o => {
-      const sec = el("div", "voter-group"), head = el("div", "voter-head"); head.append(el("strong", "", o.label), el("span", "", String(o.names.length))); sec.append(head);
-      if (!o.names.length) sec.append(el("div", "voter-none", "No votes yet"));
-      else { const wrap = el("div", "voter-names"); o.names.forEach(n => wrap.append(el("span", "voter-chip", n))); sec.append(wrap); }
-      box.append(sec);
+/* ---------- Notice views: a notice counts once per device after it has been on screen for a moment ---------- */
+let viewObserver = null; const viewTimers = new Map(), viewSent = new Set(), viewQueue = new Set(); let viewFlushTimer = null;
+function watchViews() {
+  if (viewObserver) viewObserver.disconnect();
+  viewTimers.forEach((t) => clearTimeout(t)); viewTimers.clear();
+  if (!("IntersectionObserver" in window)) return;
+  viewObserver = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      const id = Number(e.target.dataset.noticeId);
+      if (e.isIntersecting) {
+        const n = appState.notices.find((x) => x.id === id);
+        if (!n || n.viewed || viewSent.has(id) || viewTimers.has(id)) return;
+        viewTimers.set(id, setTimeout(() => { viewTimers.delete(id); queueView(id); }, 1200));
+      } else if (viewTimers.has(id)) { clearTimeout(viewTimers.get(id)); viewTimers.delete(id); }
     });
-    showModal("votersModal");
-  } catch (error) {
-    if (/premium/i.test(error.message)) { pendingVoterPoll = p; $("#premiumError").textContent = ""; $("#premiumCode").value = ""; showModal("premiumModal"); }
-    else showToast(error.message);
-  }
+  }, { threshold: 0.5 });
+  $$("#noticeList .notice-card").forEach((c) => viewObserver.observe(c));
 }
-$("#premiumForm").addEventListener("submit", async (e) => {
-  e.preventDefault(); $("#premiumError").textContent = "";
-  try {
-    await api("/api/premium", { method: "POST", body: JSON.stringify({ code: $("#premiumCode").value }) });
-    closeModal("premiumModal"); appState.isPremium = true; showToast("Premium unlocked.");
-    if (pendingVoterPoll) { const p = pendingVoterPoll; pendingVoterPoll = null; openVoters(p); }
-  } catch (error) { $("#premiumError").textContent = error.message; }
-});
+function queueView(id) {
+  if (viewSent.has(id)) return;
+  viewSent.add(id); viewQueue.add(id);
+  const n = appState.notices.find((x) => x.id === id);
+  if (n) { n.viewed = true; n.views = (n.views || 0) + 1; paintViews(id, n.views); }
+  clearTimeout(viewFlushTimer); viewFlushTimer = setTimeout(flushViews, 1500);
+}
+async function flushViews() {
+  const ids = [...viewQueue]; viewQueue.clear(); if (!ids.length) return;
+  try { await api("/api/views", { method: "POST", body: JSON.stringify({ ids }) }); }
+  catch { ids.forEach((id) => viewSent.delete(id)); }
+}
+function paintViews(id, count) { $$(`[data-notice-id="${id}"] .nf-views-n`).forEach((x) => { x.textContent = String(count); }); }
+function syncViews(list) {
+  (list || []).forEach((n) => {
+    const mine = appState.notices.find((x) => x.id === n.id); if (!mine) return;
+    const count = Math.max(n.views || 0, viewSent.has(n.id) ? mine.views || 0 : 0);
+    mine.views = count; mine.viewed = n.viewed || viewSent.has(n.id); paintViews(n.id, count);
+  });
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) flushViews(); });
+
 const CAT_ICON = { "Class": "i-book", "Assignment": "i-feed", "Quiz / CT": "i-clock", "Exam": "i-exam", "Other": "i-spark" };
 function icon(id) { const ns = "http://www.w3.org/2000/svg", s = document.createElementNS(ns, "svg"), u = document.createElementNS(ns, "use"); s.setAttribute("class", "ic"); s.setAttribute("aria-hidden", "true"); u.setAttribute("href", "#" + id); s.append(u); return s; }
 function iconBtn(cls, label, id, fn) { const b = el("button", "mini-button ic-only " + cls); b.type = "button"; b.title = label; b.setAttribute("aria-label", label); b.append(icon(id)); b.addEventListener("click", fn); return b; }
@@ -328,16 +293,16 @@ async function loadData(silent = false) {
   try {
     const data = await api("/api/bootstrap");
     lastRev = data.rev ?? lastRev;
-    const sig = JSON.stringify([data.notices, data.settings, data.countdowns, data.polls, data.routine, data.isAdmin, data.isPremium]);
-    if (sig === dataSig) return;
+    const sig = JSON.stringify([(data.notices || []).map(({ views, viewed, ...rest }) => rest), data.settings, data.countdowns, data.routine, data.isAdmin]);
+    if (sig === dataSig) { syncViews(data.notices); return; }
     dataSig = sig;
-    appState.notices = data.notices || []; appState.settings = data.settings || {}; appState.countdowns = data.countdowns || []; appState.polls = data.polls || []; appState.routine = data.routine || [];
-    appState.isAdmin = Boolean(data.isAdmin); appState.isPremium = Boolean(data.isPremium);
-    renderCountdown(); renderPolls(); renderNotices(); consumePending(); pendingNotice = null; renderInfoPanels(); updateProfile(); updateNotifs();
+    appState.notices = data.notices || []; appState.settings = data.settings || {}; appState.countdowns = data.countdowns || []; appState.routine = data.routine || [];
+    appState.isAdmin = Boolean(data.isAdmin);
+    renderCountdown(); renderNotices(); consumePending(); pendingNotice = null; renderInfoPanels(); updateProfile(); updateNotifs();
     if (appState.isAdmin) {
       renderAdminNotices(); fillCtForm(); loadStats();
-      // only refill the forms when the CR's own data changed, so students' votes/reactions never wipe what the CR is typing
-      const as = JSON.stringify([data.settings, data.countdowns, data.routine, (data.polls || []).map(p => [p.id, p.question]), data.notices.map(n => [n.id, n.title, n.pinned])]);
+      // only refill the forms when the CR's own data changed, so students' activity never wipes what the CR is typing
+      const as = JSON.stringify([data.settings, data.countdowns, data.routine, data.notices.map(n => [n.id, n.title, n.pinned])]);
       if (as !== adminSig) { adminSig = as; fillStoreForms(); fillClsForm(); }
     }
   } catch (error) {
@@ -373,31 +338,7 @@ function renderAdminCountdowns() {
     iconBtn("danger", "Delete", "i-trash", async () => { if (!confirm("Delete this countdown?")) return; try { await api(`/api/countdowns/${c.id}`, { method: "DELETE" }); showToast("Countdown deleted."); await loadData(); } catch (e) { showToast(e.message); } })
   ])));
 }
-function renderAdminPolls() {
-  const list = $("#adminPollList"); list.innerHTML = "";
-  if (!(appState.polls || []).length) { list.append(el("div", "info-empty", "No polls yet.")); return; }
-  appState.polls.forEach(p => list.append(adminRow("i-poll", p.question, `${votesLabel(p.total)} · ${formatCreated(p.created_at)}`, [
-    iconBtn("danger", "Delete", "i-trash", async () => { if (!confirm("Delete this poll and its votes?")) return; try { await api(`/api/polls/${p.id}`, { method: "DELETE" }); showToast("Poll deleted."); await loadData(); } catch (e) { showToast(e.message); } })
-  ])));
-}
-function fillCtForm() { renderAdminCountdowns(); renderAdminPolls(); }
-function addPollOpt(v = "") {
-  const row = el("div", "poll-opt-row"), inp = el("input"); inp.maxLength = 80; inp.value = v; inp.placeholder = "Option " + ($$("#pollOpts .poll-opt-row").length + 1);
-  const rm = el("button", "mini-button danger", "×"); rm.type = "button"; rm.setAttribute("aria-label", "Remove option");
-  rm.addEventListener("click", () => { if ($$("#pollOpts .poll-opt-row").length > 2) row.remove(); });
-  row.append(inp, rm); $("#pollOpts").append(row);
-}
-$("#pollAddOpt").addEventListener("click", () => { if ($$("#pollOpts .poll-opt-row").length >= 6) { showToast("Maximum 6 options."); return; } addPollOpt(); });
-$("#pollForm").addEventListener("submit", async (e) => {
-  e.preventDefault(); const btn = $("#pollForm button[type=submit]"), msg = $("#pollFormMessage"); btn.disabled = true; setMsg(msg, "", false);
-  try {
-    const options = $$("#pollOpts input").map(i => i.value.trim()).filter(Boolean);
-    await api("/api/polls", { method: "POST", body: JSON.stringify({ question: $("#pollQ").value, options }) });
-    $("#pollQ").value = ""; $("#pollOpts").innerHTML = ""; addPollOpt(); addPollOpt();
-    setMsg(msg, "Poll published. Phones will get a notification.", false); showToast("Poll published."); await loadData();
-  } catch (error) { setMsg(msg, error.message, true); }
-  finally { btn.disabled = false; }
-});
+function fillCtForm() { renderAdminCountdowns(); }
 function resetNoticeForm() {
   appState.editingId = null; $("#noticeForm").reset(); syncChips(); $("#editingId").value = ""; $("#cancelEdit").classList.add("hidden"); $("#noticeForm button[type=submit]").textContent = "Publish notice"; $("#noticeFormMessage").textContent = "";
 }
@@ -462,21 +403,20 @@ function readStore() {
   else if (exRaw && typeof exRaw === "object") { exTitle = safeText(exRaw.t); exItems = Array.isArray(exRaw.i) ? exRaw.i : []; }
   return {
     cts: getCountdowns(),
-    upTitle: ok ? safeText(p.ul) : "", upCol: ok ? safeText(p.uc) : "",
     up: up.map(r => ({ course: safeText(r.c), ct: safeText(r.n), date: safeText(r.d) })),
     ex: { title: exTitle, items: exItems.map(r => ({ date: safeText(r.d), course: safeText(r.c), time: safeText(r.m), syllabus: safeText(r.s) })) }
   };
 }
 function packStore(st) {
   return JSON.stringify({
-    v: 2, cts: [], ul: st.upTitle || "", uc: st.upCol || "",
+    v: 2, cts: [],
     up: st.up.map(r => ({ c: r.course, n: r.ct, d: r.date })),
     ex: { t: st.ex.title, i: st.ex.items.map(r => ({ d: r.date, c: r.course, m: r.time, s: r.syllabus })) }
   });
 }
 async function saveStore(patch) {
   const s = appState.settings || {}, cur = readStore();
-  const json = packStore({ cts: cur.cts, up: cur.up, ex: cur.ex, upTitle: cur.upTitle, upCol: cur.upCol, ...patch });
+  const json = packStore({ cts: cur.cts, up: cur.up, ex: cur.ex, ...patch });
   if (json.length > STORE_LIMIT) throw new Error(`Too much saved text (${json.length}/${STORE_LIMIT}). Shorten some entries or CT syllabus text and save again.`);
   await api("/api/settings", { method: "PUT", body: JSON.stringify({ ct_datetime: s.ct_datetime || "", syllabus_title: s.syllabus_title || "", syllabus_text: json }) });
 }
@@ -493,10 +433,10 @@ function withDays(list) {
 }
 function renderUpcoming() {
   const box = $("#upBody"); box.innerHTML = "";
-  const stU = readStore(), rows = withDays(stU.up), colName = stU.upCol || "CT", titleName = stU.upTitle || "Upcoming CT";
-  if (!rows.length) { box.append(el("div", "info-empty", `No ${titleName.toLowerCase()} has been added yet.`)); return; }
+  const rows = withDays(readStore().up);
+  if (!rows.length) { box.append(el("div", "info-empty", "No upcoming CT has been added yet.")); return; }
   const wrap = el("div", "table-wrap"), table = el("table", "info-table"), thead = el("thead"), hr = el("tr");
-  ["Course", colName, "Date", "Remaining"].forEach(h => { const th = el("th", "", h); th.scope = "col"; hr.append(th); });
+  ["Course", "CT", "Date", "Remaining"].forEach(h => { const th = el("th", "", h); th.scope = "col"; hr.append(th); });
   thead.append(hr);
   const tbody = el("tbody");
   rows.forEach(r => {
@@ -526,9 +466,7 @@ function renderInfoPanels() {
   const st = readStore();
   const live = (arr) => arr.filter(r => !isPast(daysLeft(r.date))).length;
   const u = live(st.up), x = live(st.ex.items);
-  const upT = st.upTitle || "Upcoming CT", upC = st.upCol || "CT";
-  $("#upLabel").textContent = upT; $("#upTitle").textContent = upT;
-  $("#upCount").textContent = u ? `${u} upcoming` : `Course, ${upC} & date`;
+  $("#upCount").textContent = u ? `${u} upcoming` : "Course, CT & date";
   const todayN = dayClasses(dhakaDow()).length;
   $("#exCount").textContent = todayN ? `${todayN} ${todayN === 1 ? "class" : "classes"} today` : (x ? `${x} exam${x === 1 ? "" : "s"} scheduled` : "Class & exam");
   renderUpcoming(); renderExams(); renderClassRoutine(); renderCalendar();
@@ -563,7 +501,6 @@ function addExItem(r = {}, open = true) {
 }
 function fillStoreForms() {
   const st = readStore();
-  $("#upTitleInput").value = st.upTitle; $("#upColInput").value = st.upCol;
   $("#upRows").innerHTML = ""; (st.up.length ? st.up : [{}]).forEach(r => addUpRow(r));
   $("#exMainTitle").value = st.ex.title;
   $("#exRows").innerHTML = ""; st.ex.items.forEach(r => addExItem(r, false)); if (!st.ex.items.length) addExItem({}, true);
@@ -655,8 +592,8 @@ $("#upForm").addEventListener("submit", async event => {
       if (!course || !date) throw new Error(`Row ${i + 1}: course name and date are required.`);
       up.push({ course, ct, date });
     });
-    await saveStore({ up, upTitle: $("#upTitleInput").value.trim(), upCol: $("#upColInput").value.trim() });
-    await loadData(); setMsg(msg, "Saved.", false); showToast("Updated.");
+    await saveStore({ up });
+    await loadData(); setMsg(msg, "Upcoming CT list saved.", false); showToast("Upcoming CT updated.");
   } catch (error) { setMsg(msg, error.message, true); }
   finally { btn.disabled = false; }
 });
@@ -691,50 +628,58 @@ function dayChips(box, current, onPick, showDots) {
   box.innerHTML = ""; const today = dhakaDow();
   DAY_SHORT.forEach((s, i) => {
     const b = el("button", "day-chip" + (i === current ? " active" : "") + (i === today ? " is-today" : "")); b.type = "button";
-    b.setAttribute("aria-label", DAY_NAMES[i]); b.setAttribute("aria-pressed", i === current ? "true" : "false");
+    b.dataset.day = i; b.setAttribute("aria-label", DAY_NAMES[i]); b.setAttribute("aria-pressed", i === current ? "true" : "false");
     b.append(el("small", "", s), el("strong", "", String(weekDayNum(i))));
     if (showDots && dayClasses(i).length) b.append(el("i", "day-dot"));
     b.addEventListener("click", () => onPick(i)); box.append(b);
   });
 }
-const OFF_DAY = 5; // Friday
-function classCard(c, isToday, now) {
-  const s = toMin(c.start_time), e = toMin(c.end_time), live = isToday && s !== null && now >= s && (e === null ? now < s + 60 : now < e);
-  const card = el("article", "cls-card" + (live ? " live" : "")), time = el("div", "cls-time"), main = el("div", "cls-main");
+function clsCard(c, day, state) {
+  const card = el("article", "cls-card" + (state ? " is-" + state : "")); card.dataset.day = day;
+  const time = el("div", "cls-time"), main = el("div", "cls-main");
   time.append(el("strong", "", fmt12(c.start_time)), el("span", "", c.end_time ? fmt12(c.end_time) : ""));
-  const title = el("h3", "", c.course); if (live) title.append(el("span", "cls-now", "Now"));
+  const title = el("h3", "", c.course);
+  if (state === "live") title.append(el("span", "cls-now", "Now"));
+  else if (state === "next") title.append(el("span", "cls-now cls-next", "Next"));
   main.append(title); const meta = el("div", "cls-meta");
   if (c.room) { const r = el("span", "cls-chip"); r.append(icon("i-pin"), document.createTextNode("Room " + c.room)); meta.append(r); }
   if (c.faculty) { const f = el("span", "cls-chip"); f.append(icon("i-user"), document.createTextNode(c.faculty)); meta.append(f); }
   if (meta.childNodes.length) main.append(meta);
   card.append(time, main); return card;
 }
-function renderClassRoutine() {
-  const today = dhakaDow(); if (rtDay === null) rtDay = today; // -1 = everything closed
-  const box = $("#clsBody"); box.innerHTML = ""; const now = dhakaNowMin();
-  const list = el("div", "rd-list");
-  DAY_NAMES.forEach((name, i) => {
-    const classes = dayClasses(i), off = i === OFF_DAY, open = rtDay === i;
-    const item = el("div", "rd-item" + (off ? " is-off" : "") + (open ? " open" : "") + (i === today ? " is-today" : ""));
-    const row = el("button", "rd-row"); row.type = "button"; row.setAttribute("aria-expanded", open ? "true" : "false");
-    const left = el("span", "rd-name", name);
-    if (i === today) left.append(el("em", "rd-today", "Today"));
-    const sub = off && !classes.length ? "Off day" : (classes.length ? `${classes.length} ${classes.length === 1 ? "class" : "classes"}` : "No class");
-    const right = el("span", "rd-sub", sub), chev = el("span", "rd-chev"); chev.setAttribute("aria-hidden", "true");
-    row.append(left, right, chev);
-    const panel = el("div", "rd-panel"), inner = el("div", "rd-inner");
-    if (classes.length) classes.forEach(c => inner.append(classCard(c, i === today, now)));
-    else inner.append(el("div", "rd-empty", off ? "Friday is an off day." : (i === today ? "No class today. Enjoy your day!" : "No class on " + name + ".")));
-    panel.append(inner); item.append(row, panel);
-    row.addEventListener("click", () => {
-      const willOpen = !item.classList.contains("open");
-      $$(".rd-item.open", list).forEach(x => { x.classList.remove("open"); x.querySelector(".rd-row").setAttribute("aria-expanded", "false"); });
-      if (willOpen) { item.classList.add("open"); row.setAttribute("aria-expanded", "true"); }
-      rtDay = willOpen ? i : -1;
+function renderClassRoutine(animate = false) {
+  const today = dhakaDow(); if (rtDay === null) rtDay = today;
+  const now = dhakaNowMin();
+  // Today's routine: always on top, whichever day is picked below
+  let tb = $("#todayBox"); if (!tb) { tb = el("div", "cls-today"); tb.id = "todayBox"; $("#clsPane").prepend(tb); }
+  tb.innerHTML = "";
+  const tl = dayClasses(today), th = el("div", "cls-head"), tt = el("div");
+  tt.append(el("strong", "", "Today's routine"), el("small", "", DAY_NAMES[today] + (tl.length ? ` · ${tl.length} ${tl.length === 1 ? "class" : "classes"}` : "")));
+  th.append(tt); tb.append(th);
+  if (!tl.length) tb.append(el("div", "info-empty", "No class today. Enjoy your day!"));
+  else {
+    let nextDone = false;
+    tl.forEach(c => {
+      const st = toMin(c.start_time), en = toMin(c.end_time); let state = "";
+      if (st !== null) {
+        const end = en === null ? st + 60 : en;
+        if (now >= st && now < end) state = "live";
+        else if (now >= end) state = "done";
+        else if (!nextDone) { state = "next"; nextDone = true; }
+      }
+      tb.append(clsCard(c, today, state));
     });
-    list.append(item);
-  });
-  box.append(list);
+  }
+  // Pick a day: tap a day to see that day's routine
+  dayChips($("#dayChips"), rtDay, (i) => { rtDay = i; renderClassRoutine(true); }, true);
+  const box = $("#clsBody"); box.innerHTML = ""; box.classList.toggle("cls-anim", !!animate);
+  const list = dayClasses(rtDay);
+  const head = el("div", "cls-head"), t = el("div");
+  t.append(el("strong", "", DAY_NAMES[rtDay] + (rtDay === today ? " (Today)" : "")), el("small", "", list.length ? `${list.length} ${list.length === 1 ? "class" : "classes"}` : "No classes"));
+  head.append(t); box.append(head);
+  if (rtDay === today) { box.append(el("div", "info-empty", "Today's classes are shown at the top.")); return; }
+  if (!list.length) { box.append(el("div", "info-empty", "No class on " + DAY_NAMES[rtDay] + ".")); return; }
+  list.forEach((c, i) => { const card = clsCard(c, rtDay, ""); card.style.setProperty("--i", i); box.append(card); });
 }
 function setRtTab(name) {
   $$(".rt-tab").forEach(b => { const on = b.dataset.rt === name; b.classList.toggle("active", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
@@ -776,6 +721,7 @@ function showView(name, push = true) {
   if (!VIEWS.includes(name)) name = "home";
   VIEWS.forEach(v => $("#view-" + v).classList.toggle("hidden", v !== name));
   $$(".nav-btn").forEach(b => { const on = b.dataset.view === name; b.classList.toggle("active", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  document.body.classList.toggle("on-home", name === "home");
   if (push) history.replaceState(null, "", "#" + name);
   window.scrollTo(0, 0);
   if (name === "home") goToCt(ctIndex, false);
@@ -833,12 +779,12 @@ function scheduleChanges() {
 function timeAgo(t) { if (!t) return "Earlier"; const m = Math.round((Date.now() - t) / 60000); if (m < 1) return "Just now"; if (m < 60) return m + " min ago"; if (m < 1440) return Math.round(m / 60) + " h ago"; return Math.round(m / 1440) + " d ago"; }
 function popAlert(i) {
   showToast("New from CR: " + i.title);
-  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("Batch 96 · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
+  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("BUP ICE · " + i.category, { body: i.title, icon: "./icons/icon-192.png" }); } catch {} }
 }
 function updateNotifs() {
   let extra = loadExtra(); const added = scheduleChanges();
   if (added.length) { extra = [...added, ...extra].slice(0, 15); try { localStorage.setItem("bupExtra", JSON.stringify(extra)); } catch {} }
-  const items = [...appState.notices.map(n => ({ id: "n" + n.id, kind: "notice", category: n.category, title: n.title, t: noticeTime(n) })), ...(appState.polls || []).map(p => ({ id: "p" + p.id, kind: "poll", category: "Poll", title: p.question, t: noticeTime(p) })), ...extra].sort((a, b) => b.t - a.t).slice(0, 25);
+  const items = [...appState.notices.map(n => ({ id: "n" + n.id, kind: "notice", category: n.category, title: n.title, t: noticeTime(n) })), ...extra].sort((a, b) => b.t - a.t).slice(0, 25);
   let seen = seenSet(); if (!seen) { seen = new Set(items.map(i => i.id)); saveSeen(seen); }
   const fresh = items.filter(i => !seen.has(i.id));
   notifItems = items; freshIds = new Set(fresh.map(i => i.id));
@@ -927,7 +873,7 @@ setTheme(document.documentElement.dataset.theme || "light");
 routeHash();
 
 buildChips();
-initCtSlider(); addPollOpt(); addPollOpt();
+initCtSlider();
 setInterval(() => tickCountdown(), 1000);
 loadData(); firstVisitPrompt(); refreshPushBtn();
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
