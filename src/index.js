@@ -1,4 +1,4 @@
-// BUP ICE Class Update Portal - Cloudflare Worker backend
+// Batch96 Class Update Portal - Cloudflare Worker backend
 // Bindings needed: DB (D1), ASSETS (static files), secret ADMIN_PASSWORD
 // Optional secret: SESSION_SECRET (if not set, ADMIN_PASSWORD is used to sign sessions)
 // Push notifications: secrets VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (e.g. mailto:you@example.com)
@@ -204,7 +204,7 @@ async function handleApi(request, env, url, ctx) {
   const method = request.method;
 
   if (path === "/api/test" && method === "GET") {
-    return json({ success: true, message: "BUP ICE API is working!" });
+    return json({ success: true, message: "Batch96 API is working!" });
   }
 
   if (!env.DB) return json({ error: "Database is not connected." }, 500);
@@ -353,7 +353,7 @@ async function handleApi(request, env, url, ctx) {
       .run();
     await bumpRev(env);
     ctx.waitUntil(
-      sendPushToAll(env, { title: "My CR · " + value.category, body: value.title, url: "/#notice-" + result.meta?.last_row_id })
+      sendPushToAll(env, { title: "Batch96 · " + value.category, body: value.title, url: "/#notice-" + result.meta?.last_row_id })
     );
     return json({ ok: true, id: result.meta?.last_row_id }, 201);
   }
