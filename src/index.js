@@ -1,4 +1,4 @@
-// Class Update Portal (Batch 96) - Cloudflare Worker backend
+// BUP ICE Class Update Portal - Cloudflare Worker backend
 // Bindings needed: DB (D1), ASSETS (static files), secret ADMIN_PASSWORD
 // Optional secret: SESSION_SECRET (if not set, ADMIN_PASSWORD is used to sign sessions)
 // Push notifications: secrets VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (e.g. mailto:you@example.com)
@@ -8,17 +8,19 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 const CATEGORIES = ["Class", "Assignment", "Quiz / CT", "Exam", "Other"];
 const SESSION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const enc = new TextEncoder();
-const PREMIUM_SECONDS = 30 * 24 * 60 * 60;
 
 // Tables are created automatically on first request, so no manual SQL step is needed.
 const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS notices (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Other', body TEXT NOT NULL, relevant_date TEXT, pinned INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  `CREATE INDEX IF NOT EXISTS idx_notices_pinned_created ON notices (pinned DESC, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK (id = 1), ct_datetime TEXT NOT NULL DEFAULT '', syllabus_title TEXT NOT NULL DEFAULT '', syllabus_text TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  `INSERT OR IGNORE INTO settings (id, ct_datetime, syllabus_title, syllabus_text) VALUES (1, '', '', '')`,
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (endpoint TEXT PRIMARY KEY, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS countdowns (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, target TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE TABLE IF NOT EXISTS polls (id INTEGER PRIMARY KEY AUTOINCREMENT, question TEXT NOT NULL, options TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE TABLE IF NOT EXISTS poll_votes (poll_id INTEGER NOT NULL, voter_id TEXT NOT NULL, option_idx INTEGER NOT NULL, voter_name TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (poll_id, voter_id))`,
-  `CREATE TABLE IF NOT EXISTS notice_views (notice_id INTEGER NOT NULL, voter_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (notice_id, voter_id))`,
   `CREATE TABLE IF NOT EXISTS devices (voter_id TEXT PRIMARY KEY, first_seen TEXT NOT NULL DEFAULT (datetime('now')), last_seen TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS class_routine (id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, course TEXT NOT NULL, start_time TEXT NOT NULL, end_time TEXT NOT NULL DEFAULT '', room TEXT NOT NULL DEFAULT '', faculty TEXT NOT NULL DEFAULT '')`,
   `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE TABLE IF NOT EXISTS notice_views (notice_id INTEGER NOT NULL, voter_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (notice_id, voter_id))`,
 ];
 let schemaReady = null;
 function ensureSchema(env) {
@@ -109,16 +111,6 @@ function sessionCookie(token, maxAge, name = "session") {
   return `${name}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
-async function isPremiumUser(request, env) {
-  if (await isAdmin(request, env)) return true;
-  const token = getCookie(request, "premium");
-  if (!token) return false;
-  const [expStr, sig] = token.split(".");
-  const exp = Number(expStr);
-  if (!exp || !sig || exp < Date.now()) return false;
-  return safeEqual(sig, await hmacHex(await sessionSecret(env), "premium:" + exp));
-}
-
 async function readBody(request) {
   try {
     const data = await request.json();
@@ -162,17 +154,6 @@ function validateCountdown(body) {
   if (dt.error) return { error: "Invalid date/time." };
   if (!dt.value) return { error: "Please choose a date and time." };
   return { value: { title, note, target: dt.value } };
-}
-
-function validatePoll(body) {
-  const question = String(body.question ?? "").trim();
-  const options = (Array.isArray(body.options) ? body.options : []).map((o) => String(o ?? "").trim()).filter(Boolean);
-  if (!question) return { error: "Please write the poll question." };
-  if (question.length > 200) return { error: "Question is too long (max 200 characters)." };
-  if (options.length < 2) return { error: "Add at least 2 options." };
-  if (options.length > 6) return { error: "Maximum 6 options." };
-  if (options.some((o) => o.length > 80)) return { error: "An option is too long (max 80 characters)." };
-  return { value: { question, options } };
 }
 
 function parseCtDatetime(raw) {
@@ -223,7 +204,7 @@ async function handleApi(request, env, url, ctx) {
   const method = request.method;
 
   if (path === "/api/test" && method === "GET") {
-    return json({ success: true, message: "API is working!" });
+    return json({ success: true, message: "BUP ICE API is working!" });
   }
 
   if (!env.DB) return json({ error: "Database is not connected." }, 500);
@@ -253,40 +234,28 @@ async function handleApi(request, env, url, ctx) {
         ).bind(voter).run()
       );
     }
-    const [notices, settings, countdowns, polls, pollCounts, myVotes, viewCounts, rev, routine] = await Promise.all([
+    const [notices, settings, countdowns, viewCounts, myViews, rev, routine] = await Promise.all([
       env.DB.prepare(
         `SELECT id, title, category, body, relevant_date, pinned, created_at
          FROM notices ORDER BY pinned DESC, created_at DESC, id DESC`
       ).all(),
       env.DB.prepare(`SELECT ct_datetime, syllabus_title, syllabus_text FROM settings WHERE id = 1`).first(),
       env.DB.prepare(`SELECT id, title, target, note FROM countdowns ORDER BY target ASC, id ASC`).all(),
-      env.DB.prepare(`SELECT id, question, options, created_at FROM polls ORDER BY id DESC LIMIT 20`).all(),
-      env.DB.prepare(`SELECT poll_id, option_idx, COUNT(*) AS n FROM poll_votes GROUP BY poll_id, option_idx`).all(),
-      voter ? env.DB.prepare(`SELECT poll_id, option_idx FROM poll_votes WHERE voter_id = ?`).bind(voter).all() : Promise.resolve({ results: [] }),
       env.DB.prepare(`SELECT notice_id, COUNT(*) AS n FROM notice_views GROUP BY notice_id`).all(),
+      voter ? env.DB.prepare(`SELECT notice_id FROM notice_views WHERE voter_id = ?`).bind(voter).all() : Promise.resolve({ results: [] }),
       getRev(env),
       env.DB.prepare(`SELECT id, day, course, start_time, end_time, room, faculty FROM class_routine ORDER BY day ASC, start_time ASC, id ASC`).all(),
     ]);
 
     const vc = {};
     (viewCounts.results || []).forEach((r) => { vc[r.notice_id] = r.n; });
-    const pc = {};
-    (pollCounts.results || []).forEach((r) => { pc[r.poll_id + ":" + r.option_idx] = r.n; });
-    const myV = {};
-    (myVotes.results || []).forEach((r) => { myV[r.poll_id] = r.option_idx; });
+    const seenByMe = new Set((myViews.results || []).map((r) => r.notice_id));
 
     return json({
-      notices: (notices.results || []).map((n) => ({ ...n, views: vc[n.id] || 0 })),
+      notices: (notices.results || []).map((n) => ({ ...n, views: vc[n.id] || 0, viewed: seenByMe.has(n.id) })),
       settings: settings || {},
       countdowns: countdowns.results || [],
-      polls: (polls.results || []).map((p) => {
-        let options = [];
-        try { options = JSON.parse(p.options); } catch {}
-        const counts = options.map((_, i) => pc[p.id + ":" + i] || 0);
-        return { id: p.id, question: p.question, options, counts, total: counts.reduce((a, b) => a + b, 0), mine: myV[p.id] ?? null, created_at: p.created_at };
-      }),
       isAdmin: await isAdmin(request, env),
-      isPremium: await isPremiumUser(request, env),
       routine: routine.results || [],
       rev,
     });
@@ -318,67 +287,17 @@ async function handleApi(request, env, url, ctx) {
     return json({ ok: true });
   }
 
-  // Views: each device is counted once per notice
-  const viewMatch = path.match(/^\/api\/notices\/(\d+)\/view$/);
-  if (viewMatch && method === "POST") {
+  // Notice views: one count per device per notice (the app sends the notices a student actually saw on screen)
+  if (path === "/api/views" && method === "POST") {
     if (!voter) return json({ error: "Device id missing. Please reload the app." }, 400);
-    const id = Number(viewMatch[1]);
-    if (!(await env.DB.prepare(`SELECT id FROM notices WHERE id = ?`).bind(id).first())) return json({ error: "Notice not found." }, 404);
-    await env.DB.prepare(`INSERT OR IGNORE INTO notice_views (notice_id, voter_id) VALUES (?, ?)`).bind(id, voter).run();
-    const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM notice_views WHERE notice_id = ?`).bind(id).first();
-    return json({ ok: true, views: row?.n || 0 });
-  }
-
-  // Poll voting: one choice per device, tap the same option again to take the vote back
-  const voteMatch = path.match(/^\/api\/polls\/(\d+)\/vote$/);
-  if (voteMatch && method === "POST") {
-    if (!voter) return json({ error: "Device id missing. Please reload the app." }, 400);
-    const id = Number(voteMatch[1]);
     const body = await readBody(request);
-    const poll = await env.DB.prepare(`SELECT options FROM polls WHERE id = ?`).bind(id).first();
-    if (!poll) return json({ error: "Poll not found." }, 404);
-    if (body.option === null) {
-      await env.DB.prepare(`DELETE FROM poll_votes WHERE poll_id = ? AND voter_id = ?`).bind(id, voter).run();
-    } else {
-      const idx = Number(body.option);
-      let options = [];
-      try { options = JSON.parse(poll.options); } catch {}
-      if (!Number.isInteger(idx) || idx < 0 || idx >= options.length) return json({ error: "Invalid option." }, 400);
-      const name = String(body.name ?? "").trim().slice(0, 40);
-      await env.DB.prepare(`INSERT OR REPLACE INTO poll_votes (poll_id, voter_id, option_idx, voter_name) VALUES (?, ?, ?, ?)`).bind(id, voter, idx, name).run();
+    const ids = [...new Set((Array.isArray(body.ids) ? body.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 30);
+    if (ids.length) {
+      await env.DB.batch(ids.map((id) => env.DB.prepare(
+        `INSERT OR IGNORE INTO notice_views (notice_id, voter_id) SELECT id, ? FROM notices WHERE id = ?`
+      ).bind(voter, id)));
     }
-    await bumpRev(env);
     return json({ ok: true });
-  }
-
-  // Premium: who voted for what
-  const votersMatch = path.match(/^\/api\/polls\/(\d+)\/voters$/);
-  if (votersMatch && method === "GET") {
-    if (!(await isPremiumUser(request, env))) return json({ error: "Premium feature.", premium: false }, 403);
-    const id = Number(votersMatch[1]);
-    const poll = await env.DB.prepare(`SELECT options FROM polls WHERE id = ?`).bind(id).first();
-    if (!poll) return json({ error: "Poll not found." }, 404);
-    let options = [];
-    try { options = JSON.parse(poll.options); } catch {}
-    const { results } = await env.DB.prepare(`SELECT option_idx, voter_name FROM poll_votes WHERE poll_id = ? ORDER BY created_at ASC`).bind(id).all();
-    return json({
-      options: options.map((label, i) => ({ label, names: (results || []).filter((r) => r.option_idx === i).map((r) => r.voter_name || "Anonymous") })),
-    });
-  }
-
-  if (path === "/api/premium" && method === "POST") {
-    const { code } = await readBody(request);
-    const real = await getSecret(env, "PREMIUM_CODE");
-    if (!real) return json({ error: "Premium is not enabled yet." }, 400);
-    const a = await hmacHex("premium-check", String(code ?? "").trim());
-    const b = await hmacHex("premium-check", real);
-    if (!safeEqual(a, b)) {
-      await new Promise((r) => setTimeout(r, 500));
-      return json({ error: "Incorrect premium code." }, 401);
-    }
-    const exp = Date.now() + PREMIUM_SECONDS * 1000;
-    const token = `${exp}.${await hmacHex(await sessionSecret(env), "premium:" + exp)}`;
-    return json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, PREMIUM_SECONDS, "premium") });
   }
 
   if (path === "/api/login" && method === "POST") {
@@ -400,15 +319,12 @@ async function handleApi(request, env, url, ctx) {
   // ---------- Admin only ----------
   const noticeMatch = path.match(/^\/api\/notices\/(\d+)$/);
   const cdMatch = path.match(/^\/api\/countdowns\/(\d+)$/);
-  const pollMatch = path.match(/^\/api\/polls\/(\d+)$/);
   const routineMatch = path.match(/^\/api\/routine\/([0-6])$/);
   const isAdminRoute =
     (path === "/api/notices" && method === "POST") ||
     (noticeMatch && (method === "PUT" || method === "DELETE")) ||
     (path === "/api/countdowns" && method === "POST") ||
     (cdMatch && (method === "PUT" || method === "DELETE")) ||
-    (path === "/api/polls" && method === "POST") ||
-    (pollMatch && method === "DELETE") ||
     (routineMatch && method === "PUT") ||
     (path === "/api/stats" && method === "GET") ||
     (path === "/api/settings" && method === "PUT");
@@ -487,24 +403,6 @@ async function handleApi(request, env, url, ctx) {
   if (cdMatch && method === "DELETE") {
     const result = await env.DB.prepare(`DELETE FROM countdowns WHERE id = ?`).bind(Number(cdMatch[1])).run();
     if (!result.meta?.changes) return json({ error: "Countdown not found." }, 404);
-    await bumpRev(env);
-    return json({ ok: true });
-  }
-
-  if (path === "/api/polls" && method === "POST") {
-    const { error, value } = validatePoll(await readBody(request));
-    if (error) return json({ error }, 400);
-    const result = await env.DB.prepare(`INSERT INTO polls (question, options) VALUES (?, ?)`).bind(value.question, JSON.stringify(value.options)).run();
-    await bumpRev(env);
-    ctx.waitUntil(sendPushToAll(env, { title: "My CR · Poll", body: value.question, url: "/#home" }));
-    return json({ ok: true, id: result.meta?.last_row_id }, 201);
-  }
-
-  if (pollMatch && method === "DELETE") {
-    const id = Number(pollMatch[1]);
-    const result = await env.DB.prepare(`DELETE FROM polls WHERE id = ?`).bind(id).run();
-    if (!result.meta?.changes) return json({ error: "Poll not found." }, 404);
-    await env.DB.prepare(`DELETE FROM poll_votes WHERE poll_id = ?`).bind(id).run();
     await bumpRev(env);
     return json({ ok: true });
   }
