@@ -715,7 +715,37 @@ $$("[data-open]").forEach(btn => btn.addEventListener("click", () => {
   showModal(id);
   const close = $("#" + id + " .modal-close"); if (close) close.focus();
 }));
-$("#soonPill").addEventListener("click", () => showToast("Coming soon."));
+// Student Tools: the separate tools site opens inside the app (full-screen layer), so the PWA is never left.
+const TOOLS_URL = "https://tools.zihadhossen0314.workers.dev/";
+let toolsOpen = false, toolsTimer = 0;
+function loadTools() {
+  const frame = $("#toolsFrame"), loading = $("#toolsLoading");
+  loading.classList.remove("slow", "hide"); loading.firstElementChild.textContent = "Loading Student Tools…";
+  clearTimeout(toolsTimer);
+  toolsTimer = setTimeout(() => { loading.classList.add("slow"); loading.firstElementChild.textContent = "Taking long. Check your internet, then tap reload."; }, 12000);
+  frame.src = TOOLS_URL;
+}
+function openTools() {
+  if (toolsOpen) return;
+  toolsOpen = true;
+  const frame = $("#toolsFrame");
+  if (!frame.getAttribute("src")) loadTools();
+  $("#toolsView").classList.remove("hidden"); document.body.style.overflow = "hidden";
+  history.pushState({ tools: 1 }, "", location.href);
+}
+function closeTools(fromPop) {
+  if (!toolsOpen) return;
+  toolsOpen = false;
+  $("#toolsView").classList.add("hidden");
+  if ($$(".modal:not(.hidden)").length === 0) document.body.style.overflow = "";
+  if (!fromPop && history.state && history.state.tools) history.back();
+}
+$("#toolsFrame").addEventListener("load", () => { clearTimeout(toolsTimer); if ($("#toolsFrame").getAttribute("src")) $("#toolsLoading").classList.add("hide"); });
+$("#toolsPill").addEventListener("click", openTools);
+$("#toolsBack").addEventListener("click", () => closeTools(false));
+$("#toolsReload").addEventListener("click", loadTools);
+window.addEventListener("popstate", () => { if (toolsOpen) closeTools(true); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && toolsOpen) closeTools(false); });
 $("#upAdd").addEventListener("click", () => addUpRow().querySelector(".up-course").focus());
 $("#exAdd").addEventListener("click", () => { const d = addExItem({}, true); d.querySelector(".ex-date").focus(); });
 $("#upForm").addEventListener("submit", async event => {
